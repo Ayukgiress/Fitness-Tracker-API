@@ -1,85 +1,73 @@
-import express from 'express';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import User from '../models/user.js';
-import dotenv from 'dotenv';
-import registerValidator from '../utils/registerValidator.js';
-import loginValidator from '../utils/loginValidator.js';
+import express from 'express';  
+import jwt from 'jsonwebtoken';  
+import User from '../models/user.js';  
+import dotenv from 'dotenv';  
+import registerValidator from '../utils/registerValidator.js';  
+import loginValidator from '../utils/loginValidator.js';  
 
-dotenv.config();
+dotenv.config();  
+const router = express.Router();  
 
-const router = express.Router();
+// Registration route  
+router.post('/register', registerValidator, async (req, res) => {  
+  const { username, email, password } = req.body;  
+  console.log("Registration Attempt:", { username, email });  
 
-// Registration route
-router.post('/register', registerValidator, async (req, res) => {
-  const { username, email, password } = req.body;
+  try {  
+    const existingUser = await User.findOne({ email });  
+    if (existingUser) {  
+      return res.status(400).json({ msg: 'User already exists' });  
+    }  
 
-  try {
-    // Check if user already exists
-    let user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ msg: 'User already exists' });
-    }
+    const user = new User({ username, email, password });  
+    await user.save();  
+    console.log("User Created:", user);  
 
-    // Create a new user
-    user = new User({
-      username,
-      email,
-      password: await bcrypt.hash(password, 10), // Hash password
-    });
+    const payload = { user: { id: user.id } };  
 
-    await user.save();
+    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {  
+      if (err) {  
+        console.error("JWT signing error:", err);  
+        return res.status(500).json({ msg: 'Server error' });  
+      }  
+      res.json({ token });  
+    });  
+  } catch (err) {  
+    console.error("Registration Error:", err.message);  
+    res.status(500).json({ msg: 'Server error' });  
+  }  
+});  
 
-    const payload = {
-      user: {
-        id: user.id,
-      },
-    };
+// Login route  
+router.post('/login', loginValidator, async (req, res) => {  
+  console.log("Request Body:", req.body);  
 
-    // Sign the JWT
-    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {
-      if (err) throw err;
-      res.json({ token });
-    });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ msg: 'Server error' });
-  }
-});
+  const { email, password } = req.body;  
 
-// Login route
-router.post('/login', loginValidator, async (req, res) => {
-  console.log("Request Body:", req.body);
+  try {  
+      const user = await User.findOne({ email });  
+      if (!user) {  
+          return res.status(400).json({ msg: 'Invalid email or password' });  
+      }  
 
-  const { email, password } = req.body;
+      const isMatch = await user.matchPassword(password);  
+      if (!isMatch) {  
+          return res.status(400).json({ msg: 'Invalid email or password' });  
+      }  
 
-  try {
-    const user = await User.findOne({ email });
-    console.log("User found:", user); // Check if user is found
+      const payload = { user: { id: user.id } };  
 
-    if (!user) {
-      return res.status(400).json({ msg: 'Invalid email or password' });
-    }
-
-    const isMatch = await user.matchPassword(password);
-    console.log("Password match:", isMatch); // Check if passwords match
-
-    if (!isMatch) {
-      return res.status(400).json({ msg: 'Invalid email or password' });
-    }
-
-    const payload = { user: { id: user.id } };
-
-    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {
-      if (err) throw err;
-      res.json({ token });
-    });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ msg: 'Server error' });
-  }
-});
-
-
+      jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {  
+        if (err) {  
+          console.error("JWT signing error:", err);  
+          return res.status(500).json({ msg: 'Server error' });  
+        }  
+        res.json({ token });  
+      });  
+  } catch (err) {  
+    console.error("Login Error:", err.message);  
+    res.status(500).json({ msg: 'Server error' });  
+  }  
+});  
 
 export default router;

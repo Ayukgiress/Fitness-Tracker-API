@@ -1,49 +1,77 @@
-
-// import { MongoClient, ServerApiVersion } from 'mongodb';
-// const uri = "mongodb+srv://giress865:xvu1hxl679OrJbom@cluster0.xokoy.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-
-// // Create a MongoClient with a MongoClientOptions object to set the Stable API version
-// const client = new MongoClient(uri, {
-//   serverApi: {
-//     version: ServerApiVersion.v1,
-//     strict: true,
-//     deprecationErrors: true,
-//   }
-// });
-
-// async function run() {
-//   try {
-//     // Connect the client to the server	(optional starting in v4.7)
-//     await client.connect();
-//     // Send a ping to confirm a successful connection
-//     await client.db("admin").command({ ping: 1 });
-//     console.log("Pinged your deployment. You successfully connected to MongoDB!");
-//   } finally {
-//     // Ensures that the client will close when you finish/error
-//     await client.close();
-//   }
-// }
-// run().catch(console.dir);
-
-// export default client
-
-
-
-
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const connectDB = async () => {
-    try {
-        const uri = process.env.MONGO_URI; 
-        if (!uri) {
-            throw new Error("MONGO_URI is not defined in the environment variables.");
-        }
-        await mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-        console.log('MongoDB connected...');
-    } catch (error) {
-        console.error('MongoDB connection error:', error);
-        process.exit(1);
-    }
+  try {
+    await mongoose.connect(process.env.MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      // You can include connectTimeoutMS if needed
+      connectTimeoutMS: 30000, // Increase timeout to 30 seconds
+    });
+    console.log('MongoDB connected successfully');
+  } catch (error) {
+    console.error('MongoDB connection error:', error.message);
+    process.exit(1);
+  }
 };
 
 export default connectDB;
+
+
+
+
+
+
+// import { MongoClient, ServerApiVersion } from 'mongodb';  
+
+// const uri = "mongodb+srv://giress865:tGTBcZzZUgvmF8Ck@fittrackdb.ekwbi.mongodb.net/?retryWrites=true&w=majority&appName=fittrackDB";  
+
+// // Create a MongoClient  
+// const client = new MongoClient(uri, {  
+//   serverApi: {  
+//     version: ServerApiVersion.v1,  
+//     strict: true,  
+//     deprecationErrors: true,  
+//   },  
+// });  
+
+// // Function to connect to the database  
+// export const connectDB = async () => {  
+//   try {  
+//     // Connect the client to the server  
+//     await client.connect();  
+//     // Send a ping to confirm a successful connection  
+//     await client.db("admin").command({ ping: 1 });  
+//     console.log("Pinged your deployment. You successfully connected to MongoDB!");  
+//   } catch (error) {  
+//     console.error('MongoDB connection error:', error);  
+//     process.exit(1); // Optional: exit the process if there's a connection error  
+//   }  
+// };  
+
+// export default client;
+
+
+
+
+
+// import mongoose from 'mongoose';
+
+// const connectDB = async () => {
+//     try {
+//         const uri = process.env.MONGO_URI; 
+//         if (!uri) {
+//             throw new Error("MONGO_URI is not defined in the environment variables.");
+//         }
+//         await mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+//         console.log('MongoDB connected...');
+//     } catch (error) {
+//         console.error('MongoDB connection error:', error);
+//         process.exit(1);
+//     }
+// };
+
+// export default connectDB;
