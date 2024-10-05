@@ -1,15 +1,49 @@
+
 import express from 'express';  
 import jwt from 'jsonwebtoken';  
 import User from '../models/user.js';  
 import dotenv from 'dotenv';  
 import registerValidator from '../utils/registerValidator.js';  
 import loginValidator from '../utils/loginValidator.js';  
+import auth from '../middleWare/auth.js';
+import { uploadToCloudService } from '../cloudService.js';  
+import multer from 'multer';
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); 
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + '-' + file.originalname); 
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only JPEG, PNG, and GIF files are allowed.'), false);
+  }
+};
+
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, 
+  fileFilter 
+});
 
 dotenv.config();  
 const router = express.Router();  
 
-// Registration route  
-router.post('/register', registerValidator, async (req, res) => {  
+// Error handling middleware
+const errorHandler = (err, req, res, next) => {
+  console.error(err.message);  
+  res.status(500).json({ msg: 'Server error', error: err.message });
+};
+
+// Registration route
+router.post('/register', registerValidator, async (req, res, next) => {  
   const { username, email, password } = req.body;  
   console.log("Registration Attempt:", { username, email });  
 
@@ -27,47 +61,94 @@ router.post('/register', registerValidator, async (req, res) => {
 
     jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {  
       if (err) {  
-        console.error("JWT signing error:", err);  
-        return res.status(500).json({ msg: 'Server error' });  
+        return next(err);
       }  
       res.json({ token });  
     });  
   } catch (err) {  
-    console.error("Registration Error:", err.message);  
-    res.status(500).json({ msg: 'Server error' });  
+    next(err);  
   }  
 });  
 
-// Login route  
-router.post('/login', loginValidator, async (req, res) => {  
-  console.log("Request Body:", req.body);  
-
+// Login route
+router.post('/login', loginValidator, async (req, res, next) => {  
   const { email, password } = req.body;  
 
   try {  
-      const user = await User.findOne({ email });  
-      if (!user) {  
-          return res.status(400).json({ msg: 'Invalid email or password' });  
+    const user = await User.findOne({ email });  
+    if (!user) {  
+      return res.status(400).json({ msg: 'Invalid email or password' });  
+    }  
+
+    const isMatch = await user.matchPassword(password);  
+    if (!isMatch) {  
+      return res.status(400).json({ msg: 'Invalid email or password' });  
+    }  
+
+    const payload = { user: { id: user.id } };  
+
+    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {  
+      if (err) {  
+        return next(err);  
       }  
-
-      const isMatch = await user.matchPassword(password);  
-      if (!isMatch) {  
-          return res.status(400).json({ msg: 'Invalid email or password' });  
-      }  
-
-      const payload = { user: { id: user.id } };  
-
-      jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {  
-        if (err) {  
-          console.error("JWT signing error:", err);  
-          return res.status(500).json({ msg: 'Server error' });  
-        }  
-        res.json({ token });  
-      });  
+      res.json({ token });  
+    });  
   } catch (err) {  
-    console.error("Login Error:", err.message);  
-    res.status(500).json({ msg: 'Server error' });  
+    next(err);  
   }  
 });  
+
+// Fetch user profile
+router.get("/profile", auth, async (req, res, next) => {  
+  try {
+    const user = await User.findById(req.user.id).select("-password");  
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Update user profile
+router.put('/profile', auth, async (req, res, next) => {
+  const { username, email, profileImage } = req.body;
+
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      { username, email, profileImage },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    res.json(updatedUser);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/uploadProfileImage', upload.single('file'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded.' });
+    }
+
+    const filePath = req.file.path; 
+
+    const result = await uploadToCloudService(filePath);
+
+
+    const user = await User.findById(req.user.id);
+    user.profileImage = result.secure_url; 
+    await user.save();
+
+    res.json({ url: user.profileImage }); 
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.use(errorHandler);
 
 export default router;

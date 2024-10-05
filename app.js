@@ -7,6 +7,9 @@ import connectDB from './config/db.js';
 import cors from 'cors';  
 import dotenv from 'dotenv';  
 
+import usersRouter from './routes/users.js';  
+import workoutRouter from './routes/workouts.js' 
+
 dotenv.config();   
 
 const app = express();  
@@ -16,17 +19,19 @@ app.use(logger('dev'));
 app.use(express.json());  
 app.use(express.urlencoded({ extended: false }));  
 app.use(cookieParser());  
+app.use(cors({  
+    origin: 'http://localhost:5173'  
+}));  
 app.use(express.static(path.join(path.resolve(), 'public')));   
 
-app.use(cors({  
-    origin: 'http://localhost:5173'   
-}));  
+app.use('/users', usersRouter); 
+app.use("/workouts", workoutRouter);
 
-// Connect to the database  
-connectDB(); // This will now connect to your MongoDB  
+ 
 
-import usersRouter from './routes/users.js';  
-app.use('/', usersRouter);  
+connectDB();
+
+
 
 // Error handling  
 app.use(function(req, res, next) {  
