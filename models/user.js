@@ -7,10 +7,12 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, required: true },
   roles: { type: [String], default: ['user'] },
   createdAt: { type: Date, default: Date.now },
-  lastLogin: { type: Date }
+  lastLogin: { type: Date },
+  profileImage: { type: String, default: '' }, // New field for profile image
 });
 
-// Hash the password before saving
+
+// Hashing  the password before saving
 UserSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   const salt = await bcrypt.genSalt(10);
@@ -18,7 +20,7 @@ UserSchema.pre('save', async function(next) {
   next();
 });
 
-// Method to match passwords
+//  matching passwords
 UserSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
