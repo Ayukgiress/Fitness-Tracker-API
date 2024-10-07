@@ -128,26 +128,29 @@ router.put('/profile', auth, async (req, res, next) => {
   }
 });
 
-router.post('/uploadProfileImage', upload.single('file'), async (req, res, next) => {
+router.post('/uploadProfileImage', auth, upload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded.' });
     }
 
     const filePath = req.file.path; 
-
     const result = await uploadToCloudService(filePath);
 
+    // Check if the upload was successful and log the URL
+    console.log('Image uploaded to:', result.secure_url);
 
-    const user = await User.findById(req.user.id);
-    user.profileImage = result.secure_url; 
-    await user.save();
+    req.user.profileImage = result.secure_url; 
+    await req.user.save();
 
-    res.json({ url: user.profileImage }); 
+    res.json({ url: req.user.profileImage }); 
   } catch (error) {
+    console.error('Error uploading profile image:', error);
     next(error);
   }
 });
+
+
 
 router.use(errorHandler);
 

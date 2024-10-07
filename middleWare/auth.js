@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/user.js';
 
 const auth = async (req, res, next) => {
-  const token = req.header('Authorization').replace('Bearer ', '');
+  const token = req.header('Authorization')?.replace('Bearer ', '');
   
   if (!token) {
     return res.status(401).json({ error: 'Authentication required' });
@@ -18,8 +18,10 @@ const auth = async (req, res, next) => {
 
     next();
   } catch (err) {
+    console.error('Authentication error:', err);
     return res.status(401).json({ error: 'Invalid token' });
   }
 };
+
 
 export default auth;
