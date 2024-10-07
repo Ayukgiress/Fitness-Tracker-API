@@ -6,6 +6,8 @@ import logger from 'morgan';
 import connectDB from './config/db.js';
 import cors from 'cors';  
 import dotenv from 'dotenv';  
+const port = process.env.PORT || 5000;  
+
 
 import usersRouter from './routes/users.js';  
 import workoutRouter from './routes/workouts.js' 
@@ -47,8 +49,7 @@ app.use(function(err, req, res, next) {
     });  
 });  
 
-const PORT = process.env.PORT || 5000;  
 
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));  
+app.listen(port, () => console.log(`Server started on port ${port}`));  
 
 export default app;
