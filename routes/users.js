@@ -36,7 +36,6 @@ const upload = multer({
 dotenv.config();  
 const router = express.Router();  
 
-// Error handling middleware
 const errorHandler = (err, req, res, next) => {
   console.error(err.message);  
   res.status(500).json({ msg: 'Server error', error: err.message });
