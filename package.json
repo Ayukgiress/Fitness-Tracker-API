@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "nodemon ./bin/www",
-    "start": "node ./bin/www"
+    "start": "node ./bin/www",
+    "dev": "nodemon ./bin/www"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -29,7 +29,6 @@
   "engines": {
     "node": ">=20.0.0"
   },
-  "main": "index.js",
   "repository": "git@github.com:Ayukgiress/Fitness-Tracker-API.git",
   "author": "Ayuk Giress <giress865@gmail.com>",
   "license": "MIT"

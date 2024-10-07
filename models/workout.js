@@ -1,4 +1,3 @@
-// models/workout.js
 import mongoose from 'mongoose';
 
 const WorkoutSchema = new mongoose.Schema({
@@ -6,7 +5,7 @@ const WorkoutSchema = new mongoose.Schema({
     exercise: String,
     duration: Number,
     date: Date,
-    calories: Number,  // Use Number instead of number
+    calories: Number,  
 });
 
 const Workout = mongoose.model('Workout', WorkoutSchema);
