@@ -72,15 +72,19 @@ router.post('/register', registerValidator, async (req, res, next) => {
 // Login route
 router.post('/login', loginValidator, async (req, res, next) => {  
   const { email, password } = req.body;  
+  console.log("Login attempt:", { email });
 
   try {  
     const user = await User.findOne({ email });  
     if (!user) {  
+      console.log("User not found");
       return res.status(400).json({ msg: 'Invalid email or password' });  
     }  
 
+    console.log("User found, checking password...");
     const isMatch = await user.matchPassword(password);  
     if (!isMatch) {  
+      console.log("Password mismatch");
       return res.status(400).json({ msg: 'Invalid email or password' });  
     }  
 
@@ -88,14 +92,17 @@ router.post('/login', loginValidator, async (req, res, next) => {
 
     jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {  
       if (err) {  
+        console.error("JWT signing error:", err);
         return next(err);  
       }  
       res.json({ token });  
     });  
   } catch (err) {  
+    console.error("Login error:", err);  
     next(err);  
   }  
-});  
+});
+
 
 // Fetch user profile
 router.get("/profile", auth, async (req, res, next) => {  
