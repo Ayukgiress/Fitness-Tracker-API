@@ -6,14 +6,10 @@ import logger from 'morgan';
 import connectDB from './config/db.js';
 import cors from 'cors';  
 import dotenv from 'dotenv';  
-const port = process.env.PORT || 5000;  
-
-
-import usersRouter from './routes/users.js';  
-import workoutRouter from './routes/workouts.js' 
 
 dotenv.config();   
 
+const port = process.env.PORT || 5000;  
 const app = express();  
 
 // Middleware setup  
@@ -22,18 +18,23 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));  
 app.use(cookieParser());  
 app.use(cors({  
-    origin: 'http://localhost:5173'  
+    origin: 'http://localhost:5173'  // Update this if needed for production
 }));  
 app.use(express.static(path.join(path.resolve(), 'public')));   
 
-app.use('/users', usersRouter); 
-app.use("/workouts", workoutRouter);
+// Root route
+app.get('/', (req, res) => {
+    res.send('Welcome to the Fitness Tracker API!');
+});
 
- 
+// Route handlers
+import usersRouter from './routes/users.js';  
+import workoutRouter from './routes/workouts.js'; 
+
+app.use('/users', usersRouter); 
+app.use('/workouts', workoutRouter);
 
 connectDB();
-
-
 
 // Error handling  
 app.use(function(req, res, next) {  
@@ -48,7 +49,6 @@ app.use(function(err, req, res, next) {
         },  
     });  
 });  
-
 
 app.listen(port, () => console.log(`Server started on port ${port}`));  
 
