@@ -17,9 +17,12 @@ app.use(logger('dev'));
 app.use(express.json());  
 app.use(express.urlencoded({ extended: false }));  
 app.use(cookieParser());  
-app.use(cors({  
-    origin: 'http://localhost:5173'  // Update this if needed for production
-}));  
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], 
+    credentials: true 
+}));
+ 
 app.use(express.static(path.join(path.resolve(), 'public')));   
 
 // Root route
@@ -37,18 +40,22 @@ app.use('/workouts', workoutRouter);
 connectDB();
 
 // Error handling  
-app.use(function(req, res, next) {  
-    next(createError(404));  
-});  
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url}`, req.body);
+    next();
+  });
+   
 
 app.use(function(err, req, res, next) {  
+    console.error('Error details:', err); // Log the full error object
     res.status(err.status || 500).json({  
         error: {  
             message: err.message,  
             status: err.status || 500,  
         },  
     });  
-});  
+});
+
 
 app.listen(port, () => console.log(`Server started on port ${port}`));  
 
