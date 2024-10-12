@@ -10,7 +10,7 @@ import dotenv from 'dotenv';
 dotenv.config();   
 
 const port = process.env.PORT || 5000;  
-const app = express();  
+const app = express(); 
 
 // Middleware setup  
 app.use(logger('dev'));  
@@ -33,9 +33,11 @@ app.get('/', (req, res) => {
 // Route handlers
 import usersRouter from './routes/users.js';  
 import workoutRouter from './routes/workouts.js'; 
+import planRouter from './routes/plan.js'
 
 app.use('/users', usersRouter); 
 app.use('/workouts', workoutRouter);
+app.use('/plan', planRouter)
 
 connectDB();
 
