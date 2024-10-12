@@ -103,6 +103,18 @@ router.post('/login', loginValidator, async (req, res, next) => {
   }  
 });
 
+router.get("/current-user", auth, async (req, res, next) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    return res.status(200).json(user);
+  } catch (error) {
+    return res.json(error);
+  }
+});
+
 
 // Fetch user profile
 router.get("/profile", auth, async (req, res, next) => {  
