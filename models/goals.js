@@ -1,9 +1,12 @@
 import mongoose from 'mongoose';
 
+const Schema = mongoose.Schema;
+
+
 const stepSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  date: { type: Date, required: true },
-  steps: { type: Number, required: true }
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  steps: { type: Number, required: true },
+  date: Date,
 }, { timestamps: true });
 
 const Step = mongoose.model('Step', stepSchema);
