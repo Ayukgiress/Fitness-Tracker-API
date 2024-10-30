@@ -3,12 +3,11 @@ import { body, validationResult } from 'express-validator';
 import mongoose from 'mongoose';
 import Step from '../models/goals.js';
 import Distance from '../models/running.js';
+import auth from '../middleWare/auth.js';
 
 const router = express.Router();
 
-// Add daily steps
-router.post('/daily-steps', [
-  body('userId').notEmpty().withMessage('User ID is required'),
+router.post('/daily-steps', auth, [
   body('steps').isInt({ gt: 0 }).withMessage('Steps must be a positive integer'),
   body('date').isISO8601().withMessage('Date is required and must be valid')
 ], async (req, res) => {
@@ -18,15 +17,12 @@ router.post('/daily-steps', [
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { userId, steps, date } = req.body;
-
-  if (!mongoose.Types.ObjectId.isValid(userId)) {
-    return res.status(400).json({ message: "Invalid User ID format." });
-  }
+  const { steps, date } = req.body;
+  const userId = req.user.id; 
 
   try {
     const stepEntry = new Step({
-      userId: mongoose.Types.ObjectId(userId),
+      userId: new mongoose.Types.ObjectId(userId),
       steps,
       date
     });
@@ -38,9 +34,8 @@ router.post('/daily-steps', [
   }
 });
 
-// Add weekly running distance
-router.post('/weekly-distance', [
-  body('userId').notEmpty().withMessage('User ID is required'),
+
+router.post('/weekly-distance', auth, [
   body('weekNumber').isInt({ gt: 0 }).withMessage('Week number must be a positive integer'),
   body('distance').isFloat({ gt: 0 }).withMessage('Distance must be a positive number')
 ], async (req, res) => {
@@ -50,15 +45,12 @@ router.post('/weekly-distance', [
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { userId, weekNumber, distance } = req.body;
-
-  if (!mongoose.Types.ObjectId.isValid(userId)) {
-    return res.status(400).json({ message: "Invalid User ID format." });
-  }
+  const { weekNumber, distance } = req.body;
+  const userId = req.user.id; // Get user ID from the authenticated user
 
   try {
     const distanceEntry = new Distance({
-      userId: mongoose.Types.ObjectId(userId),
+      userId: new mongoose.Types.ObjectId(userId),
       weekNumber,
       distance
     });
@@ -70,10 +62,12 @@ router.post('/weekly-distance', [
   }
 });
 
-// Get daily steps
-router.get('/daily-steps', async (req, res) => {
+// Get daily steps for the authenticated user
+router.get('/daily-steps', auth, async (req, res) => {
+  const userId = req.user.id; 
+
   try {
-    const steps = await Step.find();
+    const steps = await Step.find({ userId });
     res.json(steps);
   } catch (error) {
     console.error(error);
@@ -81,10 +75,12 @@ router.get('/daily-steps', async (req, res) => {
   }
 });
 
-// Get weekly distances
-router.get('/weekly-distance', async (req, res) => {
+// Get weekly distances for the authenticated user
+router.get('/weekly-distance', auth, async (req, res) => {
+  const userId = req.user.id; 
+
   try {
-    const distances = await Distance.find();
+    const distances = await Distance.find({ userId });
     res.json(distances);
   } catch (error) {
     console.error(error);
