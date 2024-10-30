@@ -8,25 +8,12 @@ const auth = async (req, res, next) => {
     return res.status(401).json({ error: "Authentication required" });
   }
 
-  console.log(token);
-
   try {
-    const decoded = (() => {
-      try {
-        return jwt.verify(token, process.env.JWT_SECRET);
-      } catch {
-        return null;
-      }
-    })();
-
-    if (!decoded) {
-      return next();
-    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.user.id).lean();
 
     if (!user) {
-      next();
-      // return res.status(401).json({ error: 'User not found' });
+      return res.status(401).json({ error: "User not found" });
     }
 
     const { password, ...restUser } = user;

@@ -306,7 +306,7 @@ router.get('/auth/google/callback',
     try {
       // Create JWT token after successful Google authentication
       const payload = { user: { id: req.user.id } };
-      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3days' });
 
       // Redirect to frontend with token
       res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
