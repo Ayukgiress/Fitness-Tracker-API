@@ -21,7 +21,7 @@ router.post('/', auth, async (req, res) => {
 
 // Get workouts by userId
 router.get('/:userId', auth, async (req, res) => {
-    const userId = req.user.id; 
+    const userId = req.user.id;
 
     try {
         const workouts = await Workout.find({ userId });
