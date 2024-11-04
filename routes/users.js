@@ -290,11 +290,9 @@ router.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/login/failed' }),
   async (req, res) => {
     try {
-      // Create JWT token after successful Google authentication
       const payload = { user: { id: req.user.id } };
       const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3days' });
 
-      // Redirect to frontend with token
       res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
     } catch (error) {
       console.error('Auth callback error:', error);
