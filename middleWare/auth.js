@@ -10,13 +10,14 @@ const auth = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.user.id).lean();
+    const user = await User.findById(decoded.user.id); // Remove .lean()
 
     if (!user) {
       return res.status(401).json({ error: "User not found" });
     }
 
-    const { password, ...restUser } = user;
+    // Ensure to omit the password field
+    const { password, ...restUser } = user.toObject(); // Convert to a plain object
     req.user = { ...restUser, id: restUser._id };
 
     next();

@@ -47,53 +47,35 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// Generate a 6-digit verification code
-const generateVerificationCode = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-};
 
-// Registration route with verification code
-router.post('/register', registerValidator, async (req, res, next) => {
+router.post('/register', registerValidator, async (req, res) => {
   const { username, email, password } = req.body;
+
   try {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ msg: 'User already exists' });
     }
 
-    const verificationCode = generateVerificationCode();
-    const verificationCodeExpires = new Date(Date.now() + 30 * 60000);
-
     const user = new User({
       username,
       email,
       password,
-      verificationCode,
-      verificationCodeExpires
     });
 
     await user.save();
 
-    await transporter.sendMail({
-      to: email,
-      subject: 'Verify Your Email',
-      html: `
-        <h2>Welcome to Our Platform!</h2>
-        <p>Your verification code is: <strong>${verificationCode}</strong></p>
-        <p>This code will expire in 30 minutes.</p>
-        <p>Please enter this code in the verification page to complete your registration.</p>
-      `
-    });
-
     res.status(201).json({
-      msg: 'Registration successful! Please check your email for the verification code.',
+      msg: 'Registration successful! You can now log in.',
       userId: user._id
     });
   } catch (err) {
-    console.error(err);
+    console.error(err); // Log the error for debugging
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
+
+
 
 // Verify email with code
 router.post('/verify-email', async (req, res) => {
@@ -109,7 +91,6 @@ router.post('/verify-email', async (req, res) => {
       });
     }
 
-    // Check if already verified
     if (user.isVerified) {
       return res.status(400).json({
         success: false,
@@ -117,7 +98,7 @@ router.post('/verify-email', async (req, res) => {
       });
     }
 
-   
+
     if (user.verificationCodeExpires < new Date()) {
       return res.status(400).json({
         success: false,
@@ -125,7 +106,7 @@ router.post('/verify-email', async (req, res) => {
       });
     }
 
-   
+
     if (user.verificationCode !== code) {
       return res.status(400).json({
         success: false,
@@ -133,13 +114,12 @@ router.post('/verify-email', async (req, res) => {
       });
     }
 
-    // Update user verification status
     user.isVerified = true;
     user.verificationCode = null;
     user.verificationCodeExpires = null;
     await user.save();
 
- 
+
     const payload = { user: { id: user.id } };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
@@ -229,7 +209,7 @@ router.get("/current-user", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id)
       .select('-password')
-      .lean(); 
+      .lean();
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -284,6 +264,10 @@ router.post('/uploadProfileImage', auth, upload.single('file'), async (req, res,
 
     console.log('Image uploaded to:', result.secure_url);
 
+    if (!req.user) {
+      return res.status(400).json({ message: 'User not found.' });
+    }
+
     req.user.profileImage = result.secure_url;
     await req.user.save();
 
@@ -293,6 +277,8 @@ router.post('/uploadProfileImage', auth, upload.single('file'), async (req, res,
     next(error);
   }
 });
+
+
 
 router.get('/auth/google',
   passport.authenticate('google', {
