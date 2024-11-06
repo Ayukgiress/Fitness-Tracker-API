@@ -1,11 +1,11 @@
 import passport from 'passport';
 import GoogleStrategy from 'passport-google-oauth20';
-import User from './models/user.js'; // Adjust the path as needed
+import User from './models/user.js'; 
 
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "http://localhost:5000/users/auth/google/callback",
+    callbackURL: "https://fitness-tracker-api-backends.onrender.com/users/auth/google/callback",
   },
   async (accessToken, refreshToken, profile, done) => {
     try {
@@ -29,9 +29,8 @@ passport.use(new GoogleStrategy({
   }
 ));
 
-// Serialize user to session
 passport.serializeUser((user, done) => {
-  done(null, user.id); // or user._id
+  done(null, user.id); 
 });
 
 passport.deserializeUser(async (id, done) => {

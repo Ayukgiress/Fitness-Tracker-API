@@ -14,7 +14,6 @@ const createTransporter = async () => {
     }
   });
 
-  // Verify transporter configuration
   try {
     await transporter.verify();
     console.log('Email transporter verified successfully');
@@ -27,14 +26,12 @@ const createTransporter = async () => {
 
 export default createTransporter;
 
-// 2. Update your registration route (users.js)
 import createTransporter from '../config/emailConfig.js';
 
 router.post('/register', registerValidator, async (req, res, next) => {  
   const { username, email, password } = req.body;  
   
   try {  
-    // Check if user exists
     const existingUser = await User.findOne({ email });  
     if (existingUser) {  
       return res.status(400).json({ 
@@ -43,10 +40,8 @@ router.post('/register', registerValidator, async (req, res, next) => {
       });  
     }  
 
-    // Generate email verification token
     const emailToken = crypto.randomBytes(64).toString("hex");
     
-    // Create new user
     const user = new User({ 
       username, 
       email, 
@@ -57,14 +52,11 @@ router.post('/register', registerValidator, async (req, res, next) => {
     
     await user.save();  
 
-    // Create verification URL
     const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${emailToken}`;
     
     try {
-      // Get email transporter
       const transporter = await createTransporter();
       
-      // Send verification email
       await transporter.sendMail({
         from: process.env.EMAIL_USER,
         to: email,
@@ -85,7 +77,6 @@ router.post('/register', registerValidator, async (req, res, next) => {
       });
       
     } catch (emailError) {
-      // If email sending fails, delete the user and return error
       await User.findByIdAndDelete(user._id);
       console.error('Email sending error:', emailError);
       return res.status(500).json({ 
