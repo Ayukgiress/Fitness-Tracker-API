@@ -7,7 +7,7 @@ import connectDB from './config/db.js';
 import cors from 'cors';  
 import dotenv from 'dotenv';  
 import passport from 'passport';
-import './passport-setup.js'; // Ensure this file initializes Passport strategies
+import './passport-setup.js'; 
 import cookieSession from 'cookie-session';
 import session from 'express-session';
 
@@ -33,7 +33,7 @@ app.use(session({
     secret: 'gtIh3cM7o2BnCPLIzqEs0OaNHaclx7zFi67nGT7FJ3gZToF2AmCxB97naV2irllb', // Change this to a strong secret
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false } // Set to true if using HTTPS
+    cookie: { secure: false } 
 }));
 
 app.use(passport.initialize());
@@ -63,9 +63,8 @@ app.use((req, res, next) => {
     next();
 });
 
-// Error handling for the application
 app.use((err, req, res, next) => {  
-    console.error('Error details:', err); // Log the full error object
+    console.error('Error details:', err); 
     res.status(err.status || 500).json({  
         error: {  
             message: err.message,  

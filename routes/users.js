@@ -70,14 +70,13 @@ router.post('/register', registerValidator, async (req, res) => {
       userId: user._id
     });
   } catch (err) {
-    console.error(err); // Log the error for debugging
+    console.error(err);
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
 
 
 
-// Verify email with code
 router.post('/verify-email', async (req, res) => {
   try {
     const { userId, code } = req.body;
