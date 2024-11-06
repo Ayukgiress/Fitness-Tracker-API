@@ -30,17 +30,18 @@ async (accessToken, refreshToken, profile, done) => {
 }));
 
 passport.serializeUser((user, done) => {
-  done(null, user.id); 
+  done(null, user.id); // Store the user ID in the session
 });
 
 passport.deserializeUser(async (id, done) => {
   try {
     const user = await User.findById(id);
-    done(null, user);
+    done(null, user); // Retrieve the full user object based on the ID
   } catch (error) {
     done(error, null);
   }
 });
+
 
 
 export default passport;
