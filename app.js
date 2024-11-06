@@ -30,17 +30,16 @@ app.use(cookieParser());
 app.use(express.static(path.join(path.resolve(), 'public')));
 
 app.use(session({
-    secret: 'gtIh3cM7o2BnCPLIzqEs0OaNHaclx7zFi67nGT7FJ3gZToF2AmCxB97naV2irllb', // Change this to a strong secret
+    secret: 'gtIh3cM7o2BnCPLIzqEs0OaNHaclx7zFi67nGT7FJ3gZToF2AmCxB97naV2irllb', // Replace with your own secret
     resave: false,
-    saveUninitialized: false,
-    cookie: { secure: false } 
-}));
-
-app.use(passport.initialize());
-app.use(passport.session());
+    saveUninitialized: true,
+  }));
+  
+  app.use(passport.initialize());
+  app.use(passport.session());
+  
 app.use(cors())
 
-// Root route
 app.get('/', (req, res) => {
     res.send('Welcome to the Fitness Tracker API!');
 });

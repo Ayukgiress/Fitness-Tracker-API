@@ -30,6 +30,7 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
+
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -290,7 +291,7 @@ router.get('/auth/google/callback',
   async (req, res) => {
     try {
       const payload = { user: { id: req.user.id } };
-      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3days' });
+      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3d' });
 
       res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
     } catch (error) {
@@ -310,13 +311,13 @@ router.get('/login/failed', (req, res) => {
 });
 
 
-router.get('/login/success', (req, res) => {
-  res.status(200).json({
-    error: false,
-    message: 'Login success',
-    user: req.user, // Send user info
+router.get('/login/failed', (req, res) => {
+  res.status(401).json({
+    error: true,
+    message: 'Login failed. Please try again.',
   });
 });
+
 
 
 const errorHandler = (err, req, res, next) => {
