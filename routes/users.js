@@ -295,7 +295,7 @@ router.get('/auth/google/callback',
       const payload = { user: { id: user.id } };
       const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3d' });
 
-      const frontendUrl = `${process.env.FRONTEND_URL}/auth/callback?token=${token}`;
+      const frontendUrl = `fittrack-web.vercel.app/auth/callback?token=${token}`;
 
       console.log(`Redirecting to: ${frontendUrl}`);
       
