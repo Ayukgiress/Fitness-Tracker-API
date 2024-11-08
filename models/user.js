@@ -16,7 +16,7 @@ const UserSchema = new Schema({
   },
   password: {
     type: String,
-    required: true // This should be required
+    required: true
   },
   googleId: {
     type: String

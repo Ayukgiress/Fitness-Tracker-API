@@ -78,103 +78,103 @@ router.post('/register', registerValidator, async (req, res) => {
 
 
 
-router.post('/verify-email', async (req, res) => {
-  try {
-    const { userId, code } = req.body;
+// router.post('/verify-email', async (req, res) => {
+//   try {
+//     const { userId, code } = req.body;
 
-    const user = await User.findById(userId);
+//     const user = await User.findById(userId);
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found.'
-      });
-    }
+//     if (!user) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'User not found.'
+//       });
+//     }
 
-    if (user.isVerified) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email already verified.'
-      });
-    }
-
-
-    if (user.verificationCodeExpires < new Date()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Verification code has expired. Please request a new one.'
-      });
-    }
+//     if (user.isVerified) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Email already verified.'
+//       });
+//     }
 
 
-    if (user.verificationCode !== code) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid verification code.'
-      });
-    }
-
-    user.isVerified = true;
-    user.verificationCode = null;
-    user.verificationCodeExpires = null;
-    await user.save();
+//     if (user.verificationCodeExpires < new Date()) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Verification code has expired. Please request a new one.'
+//       });
+//     }
 
 
-    const payload = { user: { id: user.id } };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+//     if (user.verificationCode !== code) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Invalid verification code.'
+//       });
+//     }
 
-    return res.status(200).json({
-      success: true,
-      message: 'Email verified successfully!',
-      token
-    });
+//     user.isVerified = true;
+//     user.verificationCode = null;
+//     user.verificationCodeExpires = null;
+//     await user.save();
 
-  } catch (error) {
-    console.error('Verification error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'An error occurred during verification.'
-    });
-  }
-});
+
+//     const payload = { user: { id: user.id } };
+//     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+//     return res.status(200).json({
+//       success: true,
+//       message: 'Email verified successfully!',
+//       token
+//     });
+
+//   } catch (error) {
+//     console.error('Verification error:', error);
+//     return res.status(500).json({
+//       success: false,
+//       message: 'An error occurred during verification.'
+//     });
+//   }
+// });
 
 // Resend verification code
-router.post('/resend-verification-code', async (req, res) => {
-  try {
-    const { userId } = req.body;
+// router.post('/resend-verification-code', async (req, res) => {
+//   try {
+//     const { userId } = req.body;
 
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+//     const user = await User.findById(userId);
+//     if (!user) {
+//       return res.status(404).json({ message: 'User not found' });
+//     }
 
-    if (user.isVerified) {
-      return res.status(400).json({ message: 'Email is already verified' });
-    }
+//     if (user.isVerified) {
+//       return res.status(400).json({ message: 'Email is already verified' });
+//     }
 
-    const verificationCode = generateVerificationCode();
-    const verificationCodeExpires = new Date(Date.now() + 30 * 60000);
+//     const verificationCode = generateVerificationCode();
+//     const verificationCodeExpires = new Date(Date.now() + 30 * 60000);
 
-    user.verificationCode = verificationCode;
-    user.verificationCodeExpires = verificationCodeExpires;
-    await user.save();
+//     user.verificationCode = verificationCode;
+//     user.verificationCodeExpires = verificationCodeExpires;
+//     await user.save();
 
-    await transporter.sendMail({
-      to: user.email,
-      subject: 'New Verification Code',
-      html: `
-        <h2>New Verification Code</h2>
-        <p>Your new verification code is: <strong>${verificationCode}</strong></p>
-        <p>This code will expire in 30 minutes.</p>
-      `
-    });
+//     await transporter.sendMail({
+//       to: user.email,
+//       subject: 'New Verification Code',
+//       html: `
+//         <h2>New Verification Code</h2>
+//         <p>Your new verification code is: <strong>${verificationCode}</strong></p>
+//         <p>This code will expire in 30 minutes.</p>
+//       `
+//     });
 
-    res.json({ message: 'New verification code sent successfully' });
-  } catch (error) {
-    console.error('Error resending verification code:', error);
-    res.status(500).json({ message: 'Error resending verification code' });
-  }
-});
+//     res.json({ message: 'New verification code sent successfully' });
+//   } catch (error) {
+//     console.error('Error resending verification code:', error);
+//     res.status(500).json({ message: 'Error resending verification code' });
+//   }
+// });
 
 // Login route
 router.post('/login', loginValidator, async (req, res, next) => {
@@ -286,17 +286,20 @@ router.get('/auth/google',
   })
 );
 
-// Google OAuth callback route
 router.get('/auth/google/callback', 
   passport.authenticate('google', { failureRedirect: '/login/failed' }),
   async (req, res) => {
     try {
-      const user = req.user;  // `user` is populated by Passport.js
+      const user = req.user;  
 
       const payload = { user: { id: user.id } };
       const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3d' });
 
-      res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
+      const frontendUrl = `${process.env.FRONTEND_URL}/auth/callback?token=${token}`;
+
+      console.log(`Redirecting to: ${frontendUrl}`);
+      
+      res.redirect(frontendUrl);
     } catch (error) {
       console.error('OAuth callback error:', error);
       res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
@@ -306,18 +309,11 @@ router.get('/auth/google/callback',
 
 
 
+
 router.get('/login/failed', (req, res) => {
   res.status(401).json({
     error: true,
     message: 'Login failure',
-  });
-});
-
-
-router.get('/login/failed', (req, res) => {
-  res.status(401).json({
-    error: true,
-    message: 'Login failed. Please try again.',
   });
 });
 
