@@ -290,7 +290,7 @@ router.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/login/failed' }),
   async (req, res) => {
     try {
-      const user = req.user;  
+      const user = req.user;
 
       const payload = { user: { id: user.id } };
       const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3d' });
@@ -306,6 +306,7 @@ router.get('/auth/google/callback',
     }
   }
 );
+
 
 
 
