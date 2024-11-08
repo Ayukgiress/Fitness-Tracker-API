@@ -290,15 +290,17 @@ router.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/login/failed' }),
   async (req, res) => {
     try {
-      const user = req.user;
+      const user = req.user;  // Successfully authenticated user
 
       const payload = { user: { id: user.id } };
       const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3d' });
 
-      const frontendUrl = `fittrack-web.vercel.app/auth/callback?token=${token}`;
+      // Full URL with protocol for the frontend
+      const frontendUrl = `https://fittrack-web.vercel.app/auth/callback?token=${token}`;
 
       console.log(`Redirecting to: ${frontendUrl}`);
-      
+
+      // Redirect to the frontend URL with the token
       res.redirect(frontendUrl);
     } catch (error) {
       console.error('OAuth callback error:', error);
@@ -306,6 +308,7 @@ router.get('/auth/google/callback',
     }
   }
 );
+
 
 
 
