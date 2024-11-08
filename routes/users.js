@@ -223,7 +223,6 @@ router.get("/current-user", auth, async (req, res) => {
 });
 
 
-// Fetch user profile
 router.get("/profile", auth, async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
@@ -236,7 +235,6 @@ router.get("/profile", auth, async (req, res, next) => {
   }
 });
 
-// Update user profile
 router.put('/profile', auth, async (req, res, next) => {
   const { username, email, profileImage } = req.body;
 
@@ -290,21 +288,19 @@ router.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/login/failed' }),
   async (req, res) => {
     try {
-      const user = req.user;  // Successfully authenticated user
+      const user = req.user;
 
       const payload = { user: { id: user.id } };
       const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3d' });
 
-      // Full URL with protocol for the frontend
       const frontendUrl = `https://fittrack-web.vercel.app/auth/callback?token=${token}`;
 
       console.log(`Redirecting to: ${frontendUrl}`);
 
-      // Redirect to the frontend URL with the token
       res.redirect(frontendUrl);
     } catch (error) {
       console.error('OAuth callback error:', error);
-      res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
+      res.redirect(`https://fittrack-web.vercel.app/login?error=auth_failed`);
     }
   }
 );
@@ -357,6 +353,68 @@ const errorHandler = (err, req, res, next) => {
 //       res.status(500).json(error.message)
 //     }
 // }
+
+
+router.post('/reset-password-request', async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ msg: 'User not found' });
+    }
+
+    // Generate reset token
+    const resetToken = user.generateResetPasswordToken();
+    await user.save();
+
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+
+    // Send email with reset link
+    await transporter.sendMail({
+      to: user.email,
+      subject: 'Password Reset Request',
+      html: `
+        <h2>Password Reset Request</h2>
+        <p>Click <a href="${resetUrl}">here</a> to reset your password. This link will expire in 1 hour.</p>
+      `
+    });
+
+    res.json({ msg: 'Password reset email sent' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+// Route to reset the password
+router.post('/reset-password/:token', async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  try {
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() } // Token must be valid
+    });
+
+    if (!user) {
+      return res.status(400).json({ msg: 'Invalid or expired token' });
+    }
+
+    // Hash the new password and update it
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+    user.resetPasswordToken = undefined; // Remove reset token
+    user.resetPasswordExpires = undefined; // Remove expiration
+    await user.save();
+
+    res.json({ msg: 'Password has been reset successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
 
 
 
