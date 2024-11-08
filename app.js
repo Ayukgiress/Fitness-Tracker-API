@@ -30,7 +30,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(path.resolve(), 'public')));
 
 app.use(session({
-    secret: 'gtIh3cM7o2BnCPLIzqEs0OaNHaclx7zFi67nGT7FJ3gZToF2AmCxB97naV2irllb', // Replace with your own secret
+    secret: 'gtIh3cM7o2BnCPLIzqEs0OaNHaclx7zFi67nGT7FJ3gZToF2AmCxB97naV2irllb', 
     resave: false,
     saveUninitialized: true,
   }));
@@ -72,7 +72,6 @@ app.use((err, req, res, next) => {
     });  
 });
 
-// Start the server
 app.listen(port, () => console.log(`Server started on port ${port}`));  
 
 export default app;
