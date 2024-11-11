@@ -424,7 +424,7 @@ router.post('/reset-password/:token', async (req, res) => {
   try {
     const user = await User.findOne({
       resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() } 
+      resetPasswordExpires: { $gt: Date.now() },
     });
 
     if (!user) {
@@ -434,7 +434,7 @@ router.post('/reset-password/:token', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(password, salt);
     user.resetPasswordToken = undefined; 
-    user.resetPasswordExpires = undefined;
+    user.resetPasswordExpires = undefined; 
     await user.save();
 
     res.json({ msg: 'Password has been reset successfully' });
@@ -443,6 +443,7 @@ router.post('/reset-password/:token', async (req, res) => {
     res.status(500).json({ msg: 'Server error' });
   }
 });
+
 
 
 
