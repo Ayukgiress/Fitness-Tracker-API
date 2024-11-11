@@ -295,10 +295,10 @@ router.get('/auth/google/callback',
       if (!existingUser) {
         const newUser = new User({
           googleId: googleUser.id,
-          username: googleUser.displayName || googleUser.emails[0].value, 
-          email: googleUser.emails[0].value, 
-          profileImage: googleUser.photos[0]?.value,
-          roles: ['user'], 
+          username: googleUser.displayName || googleUser.emails[0].value,
+          email: googleUser.emails[0].value,
+          profileImage: googleUser.photos && googleUser.photos.length > 0 ? googleUser.photos[0].value : '', // Google profile image
+          roles: ['user'],
         });
 
         await newUser.save();
@@ -308,7 +308,6 @@ router.get('/auth/google/callback',
 
         const frontendUrl = `https://fittrack-web.vercel.app/auth/callback?token=${token}`;
         console.log(`Redirecting to: ${frontendUrl}`);
-
         return res.redirect(frontendUrl);
       } else {
         const payload = { user: { id: existingUser.id } };
@@ -316,7 +315,6 @@ router.get('/auth/google/callback',
 
         const frontendUrl = `https://fittrack-web.vercel.app/auth/callback?token=${token}`;
         console.log(`Redirecting to: ${frontendUrl}`);
-
         return res.redirect(frontendUrl);
       }
     } catch (error) {
@@ -325,6 +323,7 @@ router.get('/auth/google/callback',
     }
   }
 );
+
 
 
 
