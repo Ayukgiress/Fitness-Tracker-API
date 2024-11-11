@@ -8,6 +8,9 @@ import auth from '../middleWare/auth.js';
 import { uploadToCloudService } from '../cloudService.js';
 import multer from 'multer';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
+
+
 import nodemailer from 'nodemailer';
 import passport from 'passport';
 
