@@ -396,10 +396,10 @@ router.post('/reset-password-request', async (req, res) => {
       return res.status(400).json({ msg: 'User not found' });
     }
 
-    const resetToken = user.generateResetPasswordToken();
+    const token = user.generateResetPasswordToken();
     await user.save();
 
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${token}`;
 
     await transporter.sendMail({
       to: user.email,
