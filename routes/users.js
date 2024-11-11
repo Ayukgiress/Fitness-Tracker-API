@@ -290,23 +290,22 @@ router.get('/auth/google/callback',
     try {
       const googleUser = req.user;
 
-      // Ensure googleUser object contains necessary properties
-      const email = googleUser.emails && googleUser.emails[0] ? googleUser.emails[0].value : '';
+      const username = googleUser.username || googleUser.displayName || googleUser.emails[0]?.value;
+      const email = googleUser.emails[0]?.value || '';
       const profileImage = googleUser.photos && googleUser.photos.length > 0 ? googleUser.photos[0].value : '';
 
       console.log('Google User:', googleUser);
-      
-      // Find user by googleId
+
       let existingUser = await User.findOne({ googleId: googleUser.id });
-      
+
       console.log('Existing User:', existingUser);
 
       if (!existingUser) {
         const newUser = new User({
           googleId: googleUser.id,
-          username: googleUser.displayName || email, // If displayName is not available, fall back to email
-          email,
-          profileImage,
+          username: username, 
+          email: email,
+          profileImage: profileImage,
           roles: ['user'],
         });
 
@@ -332,6 +331,7 @@ router.get('/auth/google/callback',
     }
   }
 );
+
 
 
 
