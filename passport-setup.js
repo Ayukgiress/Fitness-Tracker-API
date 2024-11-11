@@ -5,29 +5,32 @@ import User from './models/user.js';
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: "https://fitness-tracker-api-backends.onrender.com/users/auth/google/callback",
+  callbackURL: "https://fitness-tracker-api-backends.onrender.com/users/auth/google/callback"
 },
 async (accessToken, refreshToken, profile, done) => {
-  console.log(profile); 
   try {
-    const existingUser = await User.findOne({ googleId: profile.id });
-    if (existingUser) {
-      return done(null, existingUser);
+    const user = await User.findOne({ googleId: profile.id });
+    
+    if (!user) {
+      const newUser = new User({
+        googleId: profile.id,
+        username: profile.displayName,
+        email: profile.emails[0].value,
+        profileImage: profile.photos[0]?.value,
+      });
+      await newUser.save();
+      return done(null, newUser); 
     }
 
-    const newUser = new User({
-      googleId: profile.id,
-      username: profile.displayName,
-      email: profile.emails[0].value,
-    });
+    return done(null, user);
 
-    await newUser.save();
-    done(null, newUser);
   } catch (error) {
-    console.error('Error during user creation:', error);
-    done(error, null);
+    console.error(error);
+    return done(error, false);  
   }
-}));
+}
+));
+
 
 passport.serializeUser((user, done) => {
   done(null, user.id); 

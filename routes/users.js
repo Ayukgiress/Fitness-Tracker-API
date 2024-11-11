@@ -284,26 +284,48 @@ router.get('/auth/google',
   })
 );
 
-router.get('/auth/google/callback', 
+router.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/login/failed' }),
   async (req, res) => {
     try {
-      const user = req.user;
+      const googleUser = req.user;
 
-      const payload = { user: { id: user.id } };
-      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3d' });
+      let existingUser = await User.findOne({ googleId: googleUser.id });
 
-      const frontendUrl = `https://fittrack-web.vercel.app/auth/callback?token=${token}`;
+      if (!existingUser) {
+        const newUser = new User({
+          googleId: googleUser.id,
+          username: googleUser.displayName || googleUser.emails[0].value, 
+          email: googleUser.emails[0].value, 
+          profileImage: googleUser.photos[0]?.value,
+          roles: ['user'], 
+        });
 
-      console.log(`Redirecting to: ${frontendUrl}`);
+        await newUser.save();
 
-      res.redirect(frontendUrl);
+        const payload = { user: { id: newUser.id } };
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3d' });
+
+        const frontendUrl = `https://fittrack-web.vercel.app/auth/callback?token=${token}`;
+        console.log(`Redirecting to: ${frontendUrl}`);
+
+        return res.redirect(frontendUrl);
+      } else {
+        const payload = { user: { id: existingUser.id } };
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3d' });
+
+        const frontendUrl = `https://fittrack-web.vercel.app/auth/callback?token=${token}`;
+        console.log(`Redirecting to: ${frontendUrl}`);
+
+        return res.redirect(frontendUrl);
+      }
     } catch (error) {
       console.error('OAuth callback error:', error);
       res.redirect(`https://fittrack-web.vercel.app/login?error=auth_failed`);
     }
   }
 );
+
 
 
 
@@ -364,13 +386,11 @@ router.post('/reset-password-request', async (req, res) => {
       return res.status(400).json({ msg: 'User not found' });
     }
 
-    // Generate reset token
     const resetToken = user.generateResetPasswordToken();
     await user.save();
 
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
-    // Send email with reset link
     await transporter.sendMail({
       to: user.email,
       subject: 'Password Reset Request',
@@ -387,7 +407,6 @@ router.post('/reset-password-request', async (req, res) => {
   }
 });
 
-// Route to reset the password
 router.post('/reset-password/:token', async (req, res) => {
   const { token } = req.params;
   const { password } = req.body;
