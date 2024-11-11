@@ -290,14 +290,23 @@ router.get('/auth/google/callback',
     try {
       const googleUser = req.user;
 
+      // Ensure googleUser object contains necessary properties
+      const email = googleUser.emails && googleUser.emails[0] ? googleUser.emails[0].value : '';
+      const profileImage = googleUser.photos && googleUser.photos.length > 0 ? googleUser.photos[0].value : '';
+
+      console.log('Google User:', googleUser);
+      
+      // Find user by googleId
       let existingUser = await User.findOne({ googleId: googleUser.id });
+      
+      console.log('Existing User:', existingUser);
 
       if (!existingUser) {
         const newUser = new User({
           googleId: googleUser.id,
-          username: googleUser.displayName || googleUser.emails[0].value,
-          email: googleUser.emails[0].value,
-          profileImage: googleUser.photos && googleUser.photos.length > 0 ? googleUser.photos[0].value : '', // Optional profile image
+          username: googleUser.displayName || email, // If displayName is not available, fall back to email
+          email,
+          profileImage,
           roles: ['user'],
         });
 
@@ -314,6 +323,7 @@ router.get('/auth/google/callback',
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3d' });
 
         const frontendUrl = `https://fittrack-web.vercel.app/dashboard?token=${token}`;
+        console.log(`Redirecting to: ${frontendUrl}`);
         return res.redirect(frontendUrl);
       }
     } catch (error) {
@@ -322,6 +332,7 @@ router.get('/auth/google/callback',
     }
   }
 );
+
 
 
 
