@@ -17,10 +17,11 @@ const UserSchema = new Schema({
   },
   password: {
     type: String,
-    required: true
+    required: function() { return this.googleId ? false : true; } // Only required if no googleId
   },
   googleId: {
-    type: String
+    type: String,
+    unique: true
   },
   roles: {
     type: [String],
@@ -38,6 +39,7 @@ const UserSchema = new Schema({
 }, {
   timestamps: true
 });
+
 
 // Hash the password before saving
 UserSchema.pre('save', async function (next) {
