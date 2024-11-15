@@ -14,7 +14,6 @@ import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
 import passport from 'passport';
 
-// Multer configuration remains the same
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/');
@@ -269,10 +268,15 @@ router.post('/uploadProfileImage', auth, upload.single('file'), async (req, res,
       return res.status(400).json({ message: 'User not found.' });
     }
 
-    req.user.profileImage = result.secure_url;
-    await req.user.save();
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
-    res.json({ url: req.user.profileImage });
+    user.profileImage = result.secure_url;
+    await user.save();
+
+    res.json({ url: user.profileImage });
   } catch (error) {
     console.error('Error uploading profile image:', error);
     next(error);
@@ -283,7 +287,7 @@ router.post('/uploadProfileImage', auth, upload.single('file'), async (req, res,
 
 router.get('/auth/google',
   passport.authenticate('google', {
-    scope: ['profile', 'email']
+    scope: ['profile', 'email'] 
   })
 );
 
@@ -291,11 +295,15 @@ router.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/login/failed' }),
   async (req, res) => {
     try {
-      const googleUser = req.user;
+      const googleUser = req.user; 
 
-      const username = googleUser.username || googleUser.displayName || googleUser.emails[0]?.value;
-      const email = googleUser.emails[0]?.value || '';
-      const profileImage = googleUser.photos && googleUser.photos.length > 0 ? googleUser.photos[0].value : '';
+      const username = googleUser.username || googleUser.displayName || 'Default Username';
+      const email = (googleUser.emails && googleUser.emails.length > 0) 
+                    ? googleUser.emails[0].value 
+                    : 'no-email@google.com'; 
+      const profileImage = googleUser.photos && googleUser.photos.length > 0 
+                           ? googleUser.photos[0].value 
+                           : '';  
 
       console.log('Google User:', googleUser);
 
@@ -334,6 +342,7 @@ router.get('/auth/google/callback',
     }
   }
 );
+
 
 
 
