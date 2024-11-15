@@ -38,7 +38,14 @@ app.use(session({
   app.use(passport.initialize());
   app.use(passport.session());
   
-app.use(cors())
+  const cors = require('cors');
+
+  app.use(cors({
+    origin: 'https://fittrack-web.vercel.app', 
+    methods: ['GET', 'POST'],
+    credentials: true
+  }));
+  
 
 app.get('/', (req, res) => {
     res.send('Welcome to the Fitness Tracker API!');
