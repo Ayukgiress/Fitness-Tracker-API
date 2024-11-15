@@ -292,24 +292,16 @@ router.get('/auth/google',
 );
 
 router.get('/auth/google/callback', 
-  passport.authenticate('google', { failureRedirect: '/login/failed' }),
+  passport.authenticate('google', { failureRedirect: '/login?error=auth_failed' }),
   async (req, res) => {
     try {
       const googleUser = req.user;
 
-      const username = googleUser.username || googleUser.displayName || 'DefaultUsername';
-      const email = (googleUser.emails && googleUser.emails.length > 0) 
-                    ? googleUser.emails[0].value 
-                    : 'no-email@google.com'; 
-      const profileImage = googleUser.photos && googleUser.photos.length > 0 
-                           ? googleUser.photos[0].value 
-                           : '';  
-
-      console.log('Google User:', googleUser);
-
+      // Handle existing user or new user
       let existingUser = await User.findOne({ googleId: googleUser.id });
 
       if (existingUser) {
+        // Generate token for existing user
         const payload = { user: { id: existingUser.id } };
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3d' });
 
@@ -317,21 +309,19 @@ router.get('/auth/google/callback',
         console.log(`Redirecting to: ${frontendUrl}`);
         return res.redirect(frontendUrl);
       } else {
-        let usernameExists = await User.findOne({ username: googleUser.username });
+        // Create a new user
         let finalUsername = googleUser.username;
-
         let counter = 1;
-        while (usernameExists) {
+        while (await User.findOne({ username: finalUsername })) {
           finalUsername = `${googleUser.username}${counter}`;
-          usernameExists = await User.findOne({ username: finalUsername });
           counter++;
         }
 
         const newUser = new User({
           googleId: googleUser.id,
-          username: finalUsername,  
-          email: email,
-          profileImage: profileImage,
+          username: finalUsername,
+          email: googleUser.email,
+          profileImage: googleUser.photos ? googleUser.photos[0].value : '',
           roles: ['user'],
         });
 
@@ -346,10 +336,11 @@ router.get('/auth/google/callback',
       }
     } catch (error) {
       console.error('OAuth callback error:', error);
-      res.redirect(`https://fittrack-web.vercel.app/login?error=auth_failed`);
+      res.redirect('https://fittrack-web.vercel.app/login?error=auth_failed');
     }
   }
 );
+
 
 
 
