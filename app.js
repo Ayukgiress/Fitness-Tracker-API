@@ -38,7 +38,6 @@ app.use(session({
   app.use(passport.initialize());
   app.use(passport.session());
   
-  const cors = require('cors');
 
   app.use(cors({
     origin: 'https://fittrack-web.vercel.app', 
