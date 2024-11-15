@@ -291,13 +291,13 @@ router.get('/auth/google',
   })
 );
 
-router.get('/auth/google/callback',
+router.get('/auth/google/callback', 
   passport.authenticate('google', { failureRedirect: '/login/failed' }),
   async (req, res) => {
     try {
-      const googleUser = req.user; 
+      const googleUser = req.user;
 
-      const username = googleUser.username || googleUser.displayName || 'Default Username';
+      const username = googleUser.username || googleUser.displayName || 'DefaultUsername';
       const email = (googleUser.emails && googleUser.emails.length > 0) 
                     ? googleUser.emails[0].value 
                     : 'no-email@google.com'; 
@@ -309,12 +309,27 @@ router.get('/auth/google/callback',
 
       let existingUser = await User.findOne({ googleId: googleUser.id });
 
-      console.log('Existing User:', existingUser);
+      if (existingUser) {
+        const payload = { user: { id: existingUser.id } };
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3d' });
 
-      if (!existingUser) {
+        const frontendUrl = `https://fittrack-web.vercel.app/dashboard?token=${token}`;
+        console.log(`Redirecting to: ${frontendUrl}`);
+        return res.redirect(frontendUrl);
+      } else {
+        let usernameExists = await User.findOne({ username: googleUser.username });
+        let finalUsername = googleUser.username;
+
+        let counter = 1;
+        while (usernameExists) {
+          finalUsername = `${googleUser.username}${counter}`;
+          usernameExists = await User.findOne({ username: finalUsername });
+          counter++;
+        }
+
         const newUser = new User({
           googleId: googleUser.id,
-          username: username, 
+          username: finalUsername,  
           email: email,
           profileImage: profileImage,
           roles: ['user'],
@@ -328,13 +343,6 @@ router.get('/auth/google/callback',
         const frontendUrl = `https://fittrack-web.vercel.app/dashboard?token=${token}`;
         console.log(`Redirecting to: ${frontendUrl}`);
         return res.redirect(frontendUrl);
-      } else {
-        const payload = { user: { id: existingUser.id } };
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3d' });
-
-        const frontendUrl = `https://fittrack-web.vercel.app/dashboard?token=${token}`;
-        console.log(`Redirecting to: ${frontendUrl}`);
-        return res.redirect(frontendUrl);
       }
     } catch (error) {
       console.error('OAuth callback error:', error);
@@ -342,6 +350,7 @@ router.get('/auth/google/callback',
     }
   }
 );
+
 
 
 

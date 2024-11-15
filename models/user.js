@@ -7,9 +7,9 @@ const Schema = mongoose.Schema;
 const UserSchema = new Schema({
   username: {
     type: String,
-    required: true,
-    unique: true
+    required: true
   },
+
   email: {
     type: String,
     required: true,
@@ -17,7 +17,7 @@ const UserSchema = new Schema({
   },
   password: {
     type: String,
-    required: function() { return this.googleId ? false : true; } // Only required if no googleId
+    required: function () { return this.googleId ? false : true; }
   },
   googleId: {
     type: String,
@@ -62,7 +62,7 @@ UserSchema.methods.matchPassword = async function (enteredPassword) {
 UserSchema.methods.generateResetPasswordToken = function () {
   const resetToken = crypto.randomBytes(20).toString('hex');
   this.resetPasswordToken = resetToken;
-  this.resetPasswordExpires = Date.now() + 3600000; 
+  this.resetPasswordExpires = Date.now() + 3600000;
   return resetToken;
 };
 
