@@ -59,7 +59,7 @@ router.post('/register', registerValidator, async (req, res) => {
     if (existingUser) {
       return res.status(400).json({ msg: 'User already exists' });
     }
-
+    
     const user = new User({
       username,
       email,
@@ -194,17 +194,45 @@ router.post('/login', loginValidator, async (req, res, next) => {
     }
 
     const payload = { user: { id: user.id } };
+    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const refreshToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {
-      if (err) {
-        return next(err);
-      }
-      res.json({ token });
-    });
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.json({ accessToken, refreshToken });
   } catch (err) {
     next(err);
   }
 });
+
+router.post('/refresh-token', async (req, res) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) return res.status(400).json({ msg: 'Refresh token required' });
+
+  try {
+    const user = await User.findOne({ refreshToken });
+    if (!user) {
+      return res.status(401).json({ msg: 'Invalid refresh token' });
+    }
+
+    jwt.verify(refreshToken, process.env.JWT_SECRET, (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ msg: 'Invalid refresh token' });
+      }
+
+      const payload = { user: { id: decoded.user.id } };
+      const newAccessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+      res.json({ accessToken: newAccessToken });
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+
 
 
 router.get("/current-user", auth, async (req, res) => {
@@ -291,67 +319,49 @@ router.get('/auth/google',
   })
 );
 
-router.get('/auth/google/callback', 
-  passport.authenticate('google', { failureRedirect: '/login?error=auth_failed' }),
-  async (req, res) => {
-    try {
-      const googleUser = req.user;
+router.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/login?error=auth_failed' }), async (req, res) => {
+  try {
+    const googleUser = req.user;
 
-      // Handle existing user or new user
-      let existingUser = await User.findOne({ googleId: googleUser.id });
+    let existingUser = await User.findOne({ googleId: googleUser.id });
 
-      if (existingUser) {
-        // Generate token for existing user
-        const payload = { user: { id: existingUser.id } };
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3d' });
+    if (existingUser) {
+      const payload = { user: { id: existingUser.id } };
+      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3d' });
 
-        const frontendUrl = `https://fittrack-web.vercel.app/dashboard?token=${token}`;
-        console.log(`Redirecting to: ${frontendUrl}`);
-        return res.redirect(frontendUrl);
-      } else {
-        // Create a new user
-        let finalUsername = googleUser.username;
-        let counter = 1;
-        while (await User.findOne({ username: finalUsername })) {
-          finalUsername = `${googleUser.username}${counter}`;
-          counter++;
-        }
-
-        const newUser = new User({
-          googleId: googleUser.id,
-          username: finalUsername,
-          email: googleUser.email,
-          profileImage: googleUser.photos ? googleUser.photos[0].value : '',
-          roles: ['user'],
-        });
-
-        await newUser.save();
-
-        const payload = { user: { id: newUser.id } };
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3d' });
-
-        const frontendUrl = `https://fittrack-web.vercel.app/dashboard?token=${token}`;
-        console.log(`Redirecting to: ${frontendUrl}`);
-        return res.redirect(frontendUrl);
+      const frontendUrl = `https://yourfrontendapp.com/dashboard?token=${token}`;
+      console.log(`Redirecting to: ${frontendUrl}`);
+      return res.redirect(frontendUrl);
+    } else {
+      let finalUsername = googleUser.username;
+      let counter = 1;
+      while (await User.findOne({ username: finalUsername })) {
+        finalUsername = `${googleUser.username}${counter}`;
+        counter++;
       }
-    } catch (error) {
-      console.error('OAuth callback error:', error);
-      res.redirect('https://fittrack-web.vercel.app/login?error=auth_failed');
+
+      const newUser = new User({
+        googleId: googleUser.id,
+        username: finalUsername,
+        email: googleUser.email,
+        profileImage: googleUser.photos ? googleUser.photos[0].value : '',
+        roles: ['user'],
+      });
+
+      await newUser.save();
+
+      const payload = { user: { id: newUser.id } };
+      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3d' });
+
+      const frontendUrl = `https://https://fittrack-web.vercel.app/dashboard?token=${token}`;
+      console.log(`Redirecting to: ${frontendUrl}`);
+      return res.redirect(frontendUrl);
     }
+  } catch (error) {
+    console.error('OAuth callback error:', error);
+    res.redirect('https://https://fittrack-web.vercel.app/login?error=auth_failed');
   }
-);
-
-
-
-
-
-
-
-
-
-
-
-
+});
 
 
 router.get('/login/failed', (req, res) => {
