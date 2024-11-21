@@ -23,6 +23,18 @@ const UserSchema = new Schema({
     type: String,
     unique: true
   },
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
+  verificationToken: {
+    type: String,
+    required: true,
+  },
+  verificationTokenExpires: {
+    type: Date,
+    required: true,
+  },
   roles: {
     type: [String],
     default: ['user']
