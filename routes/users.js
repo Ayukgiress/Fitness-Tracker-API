@@ -75,7 +75,7 @@ router.post('/register', registerValidator, async (req, res) => {
     await user.save();
 
     // Send verification email
-    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
+    const verificationUrl = `${process.env.FRONTEND_URL}users/verify-email/${verificationToken}`;
 
     await transporter.sendMail({
       to: user.email,
@@ -156,7 +156,7 @@ router.post('/resend-verification-code', async (req, res) => {
     user.verificationTokenExpires = verificationTokenExpires;
     await user.save();
 
-    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
+    const verificationUrl = `${process.env.FRONTEND_URL}users/verify-email/${verificationToken}`;
 
     // Send new verification email
     await transporter.sendMail({
