@@ -60,17 +60,35 @@ router.post('/register', registerValidator, async (req, res) => {
       return res.status(400).json({ msg: 'User already exists' });
     }
     
+    // Create a verification token
+    const verificationToken = crypto.randomBytes(20).toString('hex');
+    const verificationTokenExpires = Date.now() + 3600000; // 1 hour
+
     const user = new User({
       username,
       email,
       password,
+      verificationToken,
+      verificationTokenExpires,
     });
 
     await user.save();
 
+    // Send verification email
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
+
+    await transporter.sendMail({
+      to: user.email,
+      subject: 'Email Verification',
+      html: `
+        <h2>Email Verification</h2>
+        <p>Please click the link below to verify your email:</p>
+        <p><a href="${verificationUrl}">Verify Email</a></p>
+      `,
+    });
+
     res.status(201).json({
-      msg: 'Registration successful! You can now log in.',
-      userId: user._id
+      msg: 'Registration successful! Please check your email to verify your account.',
     });
   } catch (err) {
     console.error(err);
@@ -78,6 +96,85 @@ router.post('/register', registerValidator, async (req, res) => {
   }
 });
 
+
+router.post('/verify-email/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    // Find the user by the verification token
+    const user = await User.findOne({ verificationToken: token, verificationTokenExpires: { $gt: Date.now() } });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired verification token.',
+      });
+    }
+
+    // Mark the user as verified
+    user.isVerified = true;
+    user.verificationToken = undefined;  // Remove verification token after successful verification
+    user.verificationTokenExpires = undefined; // Remove the expiration time
+    await user.save();
+
+    const payload = { user: { id: user.id } };
+    const jwtToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    res.status(200).json({
+      success: true,
+      message: 'Email verified successfully!',
+      token: jwtToken,  // Provide JWT token after successful email verification
+    });
+  } catch (error) {
+    console.error('Verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred during verification.',
+    });
+  }
+});
+
+
+router.post('/resend-verification-code', async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ message: 'Email already verified' });
+    }
+
+    // Create a new verification token and expiration time
+    const verificationToken = crypto.randomBytes(20).toString('hex');
+    const verificationTokenExpires = Date.now() + 3600000; // 1 hour
+
+    user.verificationToken = verificationToken;
+    user.verificationTokenExpires = verificationTokenExpires;
+    await user.save();
+
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
+
+    // Send new verification email
+    await transporter.sendMail({
+      to: user.email,
+      subject: 'Email Verification',
+      html: `
+        <h2>Email Verification</h2>
+        <p>Please click the link below to verify your email:</p>
+        <p><a href="${verificationUrl}">Verify Email</a></p>
+      `,
+    });
+
+    res.json({ message: 'New verification email sent successfully' });
+  } catch (error) {
+    console.error('Error resending verification code:', error);
+    res.status(500).json({ message: 'Error resending verification code' });
+  }
+});
 
 
 // router.post('/verify-email', async (req, res) => {
@@ -329,7 +426,7 @@ router.get('/auth/google/callback', passport.authenticate('google', { failureRed
       const payload = { user: { id: existingUser.id } };
       const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3d' });
 
-      const frontendUrl = `https://yourfrontendapp.com/dashboard?token=${token}`;
+      const frontendUrl = `https://fittrack-web.vercel.app/dashboard?token=${token}`;
       console.log(`Redirecting to: ${frontendUrl}`);
       return res.redirect(frontendUrl);
     } else {
@@ -359,7 +456,7 @@ router.get('/auth/google/callback', passport.authenticate('google', { failureRed
     }
   } catch (error) {
     console.error('OAuth callback error:', error);
-    res.redirect('https://https://fittrack-web.vercel.app/login?error=auth_failed');
+    res.redirect(`https://https://fittrack-web.vercel.app/login?error=auth_failed`);
   }
 });
 
