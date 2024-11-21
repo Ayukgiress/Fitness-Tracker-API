@@ -60,9 +60,8 @@ router.post('/register', registerValidator, async (req, res) => {
       return res.status(400).json({ msg: 'User already exists' });
     }
     
-    // Create a verification token
     const verificationToken = crypto.randomBytes(20).toString('hex');
-    const verificationTokenExpires = Date.now() + 3600000; // 1 hour
+    const verificationTokenExpires = Date.now() + 3600000;
 
     const user = new User({
       username,
@@ -74,8 +73,7 @@ router.post('/register', registerValidator, async (req, res) => {
 
     await user.save();
 
-    // Send verification email
-    const verificationUrl = `${process.env.FRONTEND_URL}users/verify-email/${verificationToken}`;
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
 
     await transporter.sendMail({
       to: user.email,
@@ -101,7 +99,6 @@ router.post('/verify-email/:token', async (req, res) => {
   try {
     const { token } = req.params;
 
-    // Find the user by the verification token
     const user = await User.findOne({ verificationToken: token, verificationTokenExpires: { $gt: Date.now() } });
 
     if (!user) {
@@ -111,10 +108,9 @@ router.post('/verify-email/:token', async (req, res) => {
       });
     }
 
-    // Mark the user as verified
     user.isVerified = true;
-    user.verificationToken = undefined;  // Remove verification token after successful verification
-    user.verificationTokenExpires = undefined; // Remove the expiration time
+    user.verificationToken = undefined;  
+    user.verificationTokenExpires = undefined; 
     await user.save();
 
     const payload = { user: { id: user.id } };
@@ -123,7 +119,7 @@ router.post('/verify-email/:token', async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Email verified successfully!',
-      token: jwtToken,  // Provide JWT token after successful email verification
+      token: jwtToken,  
     });
   } catch (error) {
     console.error('Verification error:', error);
@@ -156,7 +152,7 @@ router.post('/resend-verification-code', async (req, res) => {
     user.verificationTokenExpires = verificationTokenExpires;
     await user.save();
 
-    const verificationUrl = `${process.env.FRONTEND_URL}users/verify-email/${verificationToken}`;
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
 
     // Send new verification email
     await transporter.sendMail({
@@ -176,104 +172,6 @@ router.post('/resend-verification-code', async (req, res) => {
   }
 });
 
-
-// router.post('/verify-email', async (req, res) => {
-//   try {
-//     const { userId, code } = req.body;
-
-//     const user = await User.findById(userId);
-
-//     if (!user) {
-//       return res.status(404).json({
-//         success: false,
-//         message: 'User not found.'
-//       });
-//     }
-
-//     if (user.isVerified) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Email already verified.'
-//       });
-//     }
-
-
-//     if (user.verificationCodeExpires < new Date()) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Verification code has expired. Please request a new one.'
-//       });
-//     }
-
-
-//     if (user.verificationCode !== code) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Invalid verification code.'
-//       });
-//     }
-
-//     user.isVerified = true;
-//     user.verificationCode = null;
-//     user.verificationCodeExpires = null;
-//     await user.save();
-
-
-//     const payload = { user: { id: user.id } };
-//     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-//     return res.status(200).json({
-//       success: true,
-//       message: 'Email verified successfully!',
-//       token
-//     });
-
-//   } catch (error) {
-//     console.error('Verification error:', error);
-//     return res.status(500).json({
-//       success: false,
-//       message: 'An error occurred during verification.'
-//     });
-//   }
-// });
-
-// Resend verification code
-// router.post('/resend-verification-code', async (req, res) => {
-//   try {
-//     const { userId } = req.body;
-
-//     const user = await User.findById(userId);
-//     if (!user) {
-//       return res.status(404).json({ message: 'User not found' });
-//     }
-
-//     if (user.isVerified) {
-//       return res.status(400).json({ message: 'Email is already verified' });
-//     }
-
-//     const verificationCode = generateVerificationCode();
-//     const verificationCodeExpires = new Date(Date.now() + 30 * 60000);
-
-//     user.verificationCode = verificationCode;
-//     user.verificationCodeExpires = verificationCodeExpires;
-//     await user.save();
-
-//     await transporter.sendMail({
-//       to: user.email,
-//       subject: 'New Verification Code',
-//       html: `
-//         <h2>New Verification Code</h2>
-//         <p>Your new verification code is: <strong>${verificationCode}</strong></p>
-//         <p>This code will expire in 30 minutes.</p>
-//       `
-//     });
-
-//     res.json({ message: 'New verification code sent successfully' });
-//   } catch (error) {
-//     console.error('Error resending verification code:', error);
-//     res.status(500).json({ message: 'Error resending verification code' });
-//   }
-// });
 
 // Login route
 router.post('/login', loginValidator, async (req, res, next) => {
