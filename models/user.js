@@ -66,6 +66,11 @@ UserSchema.pre('save', async function (next) {
   }
 });
 
+UserSchema.methods.isVerificationCodeValid = function () {
+  return Date.now() < this.verificationTokenExpires;
+};
+
+
 UserSchema.methods.matchPassword = async function (enteredPassword) {
   if (!this.password) return false;
   return await bcrypt.compare(enteredPassword, this.password);
