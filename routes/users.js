@@ -70,10 +70,9 @@ router.post('/register', registerValidator, async (req, res) => {
       verificationToken,
       verificationTokenExpires,
     });
-
-
-
+    
     await user.save();
+    
 
     const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
 
@@ -114,8 +113,8 @@ router.post('/verify-email/:token', async (req, res) => {
     }
 
     user.isVerified = true;
-    user.verificationToken = undefined;
-    user.verificationTokenExpires = undefined;
+    user.verificationToken = undefined;  // Clear token after verification
+    user.verificationTokenExpires = undefined;  // Clear expiration after verification
     await user.save();
 
     const payload = { user: { id: user.id } };
@@ -134,6 +133,7 @@ router.post('/verify-email/:token', async (req, res) => {
     });
   }
 });
+
 
 
 router.post('/resend-verification-code', async (req, res) => {
