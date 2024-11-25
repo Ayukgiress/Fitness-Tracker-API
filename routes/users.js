@@ -59,9 +59,9 @@ router.post('/register', registerValidator, async (req, res) => {
     if (existingUser) {
       return res.status(400).json({ msg: 'User already exists' });
     }
-    
+
     const verificationToken = crypto.randomBytes(20).toString('hex');
-    const verificationTokenExpires = Date.now() + 3600000;
+    const verificationTokenExpires = Date.now() + 3600000; 
 
     const user = new User({
       username,
@@ -70,6 +70,8 @@ router.post('/register', registerValidator, async (req, res) => {
       verificationToken,
       verificationTokenExpires,
     });
+
+
 
     await user.save();
 
@@ -99,7 +101,10 @@ router.post('/verify-email/:token', async (req, res) => {
   try {
     const { token } = req.params;
 
-    const user = await User.findOne({ verificationToken: token, verificationTokenExpires: { $gt: Date.now() } });
+    const user = await User.findOne({
+      verificationToken: token,
+      verificationTokenExpires: { $gt: Date.now() }, 
+    });
 
     if (!user) {
       return res.status(400).json({
@@ -109,8 +114,8 @@ router.post('/verify-email/:token', async (req, res) => {
     }
 
     user.isVerified = true;
-    user.verificationToken = undefined;  
-    user.verificationTokenExpires = undefined; 
+    user.verificationToken = undefined;
+    user.verificationTokenExpires = undefined;
     await user.save();
 
     const payload = { user: { id: user.id } };
@@ -119,7 +124,7 @@ router.post('/verify-email/:token', async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Email verified successfully!',
-      token: jwtToken,  
+      token: jwtToken,
     });
   } catch (error) {
     console.error('Verification error:', error);
@@ -144,17 +149,15 @@ router.post('/resend-verification-code', async (req, res) => {
       return res.status(400).json({ message: 'Email already verified' });
     }
 
-    // Create a new verification token and expiration time
     const verificationToken = crypto.randomBytes(20).toString('hex');
-    const verificationTokenExpires = Date.now() + 3600000; // 1 hour
-
+    const verificationTokenExpires = Date.now() + 3600000; 
     user.verificationToken = verificationToken;
     user.verificationTokenExpires = verificationTokenExpires;
     await user.save();
+    
 
     const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
 
-    // Send new verification email
     await transporter.sendMail({
       to: user.email,
       subject: 'Email Verification',
@@ -189,7 +192,7 @@ router.post('/login', loginValidator, async (req, res, next) => {
     }
 
     const payload = { user: { id: user.id } };
-    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
     const refreshToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
 
     user.refreshToken = refreshToken;
@@ -310,7 +313,7 @@ router.post('/uploadProfileImage', auth, upload.single('file'), async (req, res,
 
 router.get('/auth/google',
   passport.authenticate('google', {
-    scope: ['profile', 'email'] 
+    scope: ['profile', 'email']
   })
 );
 
@@ -450,8 +453,8 @@ router.post('/reset-password/:token', async (req, res) => {
 
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(password, salt);
-    user.resetPasswordToken = undefined; 
-    user.resetPasswordExpires = undefined; 
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
     await user.save();
 
     res.json({ msg: 'Password has been reset successfully' });
