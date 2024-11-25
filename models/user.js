@@ -29,11 +29,11 @@ const UserSchema = new Schema({
   },
   verificationToken: {
     type: String,
-    required: true,
+    required: [true, 'Verification token is required'],
   },
   verificationTokenExpires: {
     type: Date,
-    required: true,
+    required: [true, 'Verification token expiration date is required'],
   },
   roles: {
     type: [String],
