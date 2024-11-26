@@ -110,7 +110,7 @@ router.post('/verify-email/:token', async (req, res) => {
     await user.save();
 
     const payload = { user: { id: user.id } };
-    const jwtToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const jwtToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
 
     res.status(200).json({
       success: true,
