@@ -126,6 +126,42 @@ router.post('/verify-email/:token', async (req, res) => {
   }
 });
 
+router.post('/resend-verification-code', async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ message: 'Email already verified' });
+    }
+
+    const verificationToken = crypto.randomBytes(20).toString('hex');
+    const verificationTokenExpires = Date.now() + 3600000;
+    user.verificationToken = verificationToken;
+    user.verificationTokenExpires = verificationTokenExpires;
+    await user.save();
+
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
+
+    await transporter.sendMail({
+      to: user.email,
+      subject: 'Email Verification',
+      html: `<h2>Email Verification</h2>
+             <p>Please click the link below to verify your email:</p>
+             <p><a href="${verificationUrl}">Verify Email</a></p>`
+    });
+
+    res.json({ message: 'New verification email sent successfully' });
+  } catch (error) {
+    console.error('Error resending verification code:', error);
+    res.status(500).json({ message: 'Error resending verification code' });
+  }
+});
+
 router.post('/login', loginValidator, async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -268,7 +304,7 @@ router.get('/auth/google/callback',
         { expiresIn: '7d' }
       );
 
-      const frontendUrl = `${process.env.FRONTEND_URL}/dashboard?token=${encodeURIComponent(token)}`;
+      const frontendUrl = `${process.env.FRONTEND_URL}/dashboard?token=${token}`;
       res.redirect(frontendUrl);
     } catch (error) {
       console.error('OAuth callback error:', error);
@@ -276,36 +312,5 @@ router.get('/auth/google/callback',
     }
   }
 );
-
-router.get('/profile', auth, async (req, res, next) => {
-  try {
-    const token = req.query.token;
-    console.log('Token received:', token); 
-
-    if (!token) {
-      return res.status(400).json({ msg: 'Token is required' });
-    }
-
-    try {
-      const decoded = jwt.decode(token); 
-      console.log('Decoded token:', decoded);
-    } catch (err) {
-      return res.status(400).json({ msg: 'Invalid token format' });
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-      if (err) {
-        console.error('JWT verification error:', err);
-        return res.status(401).json({ msg: 'Invalid token' });
-      }
-
-      console.log('Verified token:', decoded); 
-      res.status(200).json({ msg: 'Token verified successfully', decoded });
-    });
-  } catch (error) {
-    console.error("Error verifying token:", error);
-    next(error);
-  }
-});
 
 export default router;
