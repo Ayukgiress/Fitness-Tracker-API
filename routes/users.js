@@ -61,7 +61,7 @@ router.post('/register', registerValidator, async (req, res) => {
     }
 
     const verificationToken = crypto.randomBytes(20).toString('hex');
-    const verificationTokenExpires = Date.now() + 3600000; 
+    const verificationTokenExpires = Date.now() + 3600000;
 
     const user = new User({
       username,
@@ -70,9 +70,9 @@ router.post('/register', registerValidator, async (req, res) => {
       verificationToken,
       verificationTokenExpires,
     });
-    
+
     await user.save();
-    
+
 
     const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
 
@@ -102,7 +102,7 @@ router.post('/verify-email/:token', async (req, res) => {
 
     const user = await User.findOne({
       verificationToken: token,
-      verificationTokenExpires: { $gt: Date.now() }, 
+      verificationTokenExpires: { $gt: Date.now() },
     });
 
     if (!user) {
@@ -112,11 +112,12 @@ router.post('/verify-email/:token', async (req, res) => {
       });
     }
 
+    
+    user.verificationToken = null;
+    user.verificationTokenExpires = null;
     user.isVerified = true;
-    user.verificationToken = undefined;  // Clear token after verification
-    user.verificationTokenExpires = undefined;  // Clear expiration after verification
-    await user.save();
 
+    await user.save({ validateBeforeSave: false }); 
     const payload = { user: { id: user.id } };
     const jwtToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
@@ -135,7 +136,6 @@ router.post('/verify-email/:token', async (req, res) => {
 });
 
 
-
 router.post('/resend-verification-code', async (req, res) => {
   const { email } = req.body;
 
@@ -150,11 +150,11 @@ router.post('/resend-verification-code', async (req, res) => {
     }
 
     const verificationToken = crypto.randomBytes(20).toString('hex');
-    const verificationTokenExpires = Date.now() + 3600000; 
+    const verificationTokenExpires = Date.now() + 3600000;
     user.verificationToken = verificationToken;
     user.verificationTokenExpires = verificationTokenExpires;
     await user.save();
-    
+
 
     const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
 
