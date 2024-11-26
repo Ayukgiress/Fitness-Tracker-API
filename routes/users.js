@@ -112,12 +112,18 @@ router.post('/verify-email/:token', async (req, res) => {
       });
     }
 
-    
-    user.verificationToken = null;
-    user.verificationTokenExpires = null;
-    user.isVerified = true;
+    if (!user.verificationToken || !user.verificationTokenExpires) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification token is missing or invalid.',
+      });
+    }
 
-    await user.save({ validateBeforeSave: false }); 
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpires = undefined;
+    await user.save();
+
     const payload = { user: { id: user.id } };
     const jwtToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
@@ -130,10 +136,11 @@ router.post('/verify-email/:token', async (req, res) => {
     console.error('Verification error:', error);
     res.status(500).json({
       success: false,
-      message: 'An error occurred during verification.',
+      message: error.message || 'An error occurred during verification.',
     });
   }
 });
+
 
 
 router.post('/resend-verification-code', async (req, res) => {
