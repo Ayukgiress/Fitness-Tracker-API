@@ -183,10 +183,7 @@ router.post('/resend-verification-code', async (req, res) => {
 });
 
 
-// Login route
 router.post('/login', loginValidator, async (req, res, next) => {
-  const { email, password } = req.body;
-
   try {
     const user = await User.findOne({ email });
     if (!user) {
@@ -198,14 +195,33 @@ router.post('/login', loginValidator, async (req, res, next) => {
       return res.status(400).json({ msg: 'Invalid email or password' });
     }
 
-    const payload = { user: { id: user.id } };
-    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
-    const refreshToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+    // Ensure consistent payload structure
+    const payload = {
+      user: {
+        id: user.id
+      }
+    };
+
+    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: '7d'
+    });
+
+    const refreshToken = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: '7d'
+    });
 
     user.refreshToken = refreshToken;
     await user.save();
 
-    res.json({ accessToken, refreshToken });
+    res.json({
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email
+      }
+    });
   } catch (err) {
     next(err);
   }
@@ -242,6 +258,8 @@ router.post('/refresh-token', async (req, res) => {
 
 router.get("/current-user", auth, async (req, res) => {
   try {
+    console.log('Authenticated User ID:', req.user.id); // Log the user ID
+
     const user = await User.findById(req.user.id)
       .select('-password')
       .lean();
