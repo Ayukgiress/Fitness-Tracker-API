@@ -5,8 +5,8 @@ import User from './models/user.js';
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: "https://fitness-tracker-api-backends.onrender.com/users/auth/google/callback"
-},
+  callbackURL: `${process.env.BACKEND_URL}/users/auth/google/callback`
+}, 
 async (accessToken, refreshToken, profile, done) => {
   try {
     const user = await User.findOne({ googleId: profile.id });

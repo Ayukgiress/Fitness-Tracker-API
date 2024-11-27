@@ -307,8 +307,7 @@ router.get('/auth/google/callback',
         { expiresIn: '7d' }
       );
 
-      const redirectUrl = `${process.env.FRONTEND_URL}/oauth-callback?token=${encodeURIComponent(token)}`;
-      res.redirect(redirectUrl);
+      res.redirect(`${process.env.FRONTEND_URL}/oauth-callback?token=${token}`);
     } catch (error) {
       console.error('OAuth callback error:', error);
       res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
