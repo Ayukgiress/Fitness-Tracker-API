@@ -301,7 +301,6 @@ router.get('/auth/google/callback',
   }),
   async (req, res) => {
     try {
-      console.log('Google User:', req.user); 
       const token = jwt.sign(
         { user: { id: req.user.id } },
         process.env.JWT_SECRET,
@@ -311,7 +310,6 @@ router.get('/auth/google/callback',
       const redirectUrl = `${process.env.FRONTEND_URL}/oauth-callback?token=${encodeURIComponent(token)}`;
       res.redirect(redirectUrl);
     } catch (error) {
-      console.error('Detailed OAuth callback error:', error);
       console.error('OAuth callback error:', error);
       res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
     }
