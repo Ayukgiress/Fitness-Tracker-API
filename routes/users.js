@@ -295,18 +295,23 @@ router.get('/auth/google',
 );
 
 router.get('/auth/google/callback',
-  passport.authenticate('google', { failureRedirect: '/login' }),
+  passport.authenticate('google', { 
+    failureRedirect: `${process.env.FRONTEND_URL}/login`,
+    session: false 
+  }),
   async (req, res) => {
     try {
+      console.log('Google User:', req.user); 
       const token = jwt.sign(
         { user: { id: req.user.id } },
         process.env.JWT_SECRET,
         { expiresIn: '7d' }
       );
 
-      const frontendUrl = `${process.env.FRONTEND_URL}/dashboard?token=${token}`;
-      res.redirect(frontendUrl);
+      const redirectUrl = `${process.env.FRONTEND_URL}/oauth-callback?token=${encodeURIComponent(token)}`;
+      res.redirect(redirectUrl);
     } catch (error) {
+      console.error('Detailed OAuth callback error:', error);
       console.error('OAuth callback error:', error);
       res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
     }
