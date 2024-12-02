@@ -307,10 +307,10 @@ router.get('/auth/google/callback',
         { expiresIn: '7d' }
       );
 
-      res.redirect(`${process.env.FRONTEND_URL}/oauth-callback?token=${token}`);
+      res.redirect(`${process.env.FRONTEND_URL}/users/oauth-callback?token=${token}`);
     } catch (error) {
       console.error('OAuth callback error:', error);
-      res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
+      res.redirect(`${process.env.FRONTEND_URL}/users/login?error=auth_failed`);
     }
   }
 );
