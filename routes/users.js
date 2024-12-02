@@ -11,6 +11,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
 import passport from 'passport';
+import GoogleStrategy from 'passport-google-oauth20';
 
 dotenv.config();
 const router = express.Router();
