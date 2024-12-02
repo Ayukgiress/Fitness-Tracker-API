@@ -294,27 +294,33 @@ router.get('/auth/google',
   })
 );
 
-router.get('/auth/google/callback', 
-  (req, res, next) => {
-    console.log('Callback hit:', req.query); 
-    next(); 
-  },
-  passport.authenticate('google', { 
-    failureRedirect: `${process.env.FRONTEND_URL}/login`,
-    session: false 
+router.get(
+  "/auth/google/callback",
+  passport.authenticate("google", {
+    session: false,
+    failureRedirect: "/login",
   }),
   async (req, res) => {
     try {
-      const token = jwt.sign(
-        { user: { id: req.user.id } },
-        process.env.JWT_SECRET,
-        { expiresIn: '7d' }
-      );
+      if (!req.user) {
+        return res.status(401).json({
+          status: "failed",
+          message: "Google authentication failed",
+        });
+      }
 
-      res.redirect(`${process.env.FRONTEND_URL}/oauth-callback?token=${token}`);
+      const token = jwt.sign({ user: { id: req.user.id } }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+      console.log("Generated Google OAuth Token:", token);
+
+      const frontendRedirectURL = `${process.env.FRONTEND_URL}/oauth-callback?token=${token}`;
+      res.redirect(frontendRedirectURL);
     } catch (error) {
-      console.error('OAuth callback error:', error);
-      res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
+      console.error("Google OAuth Callback Error:", error);
+      res.status(500).json({
+        status: "failed",
+        message: "Internal server error",
+      });
     }
   }
 );
