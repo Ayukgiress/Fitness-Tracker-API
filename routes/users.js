@@ -11,7 +11,6 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
 import passport from 'passport';
-import GoogleStrategy from 'passport-google-oauth20';
 
 dotenv.config();
 const router = express.Router();
@@ -289,17 +288,34 @@ router.post('/uploadProfileImage', auth, upload.single('file'), async (req, res,
   }
 });
 
-router.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+router.get('/auth/google',
+  passport.authenticate('google', {
+    scope: ['profile', 'email'],
+  })
+);
 
 router.get('/auth/google/callback', 
   (req, res, next) => {
     console.log('Callback hit:', req.query); 
     next(); 
   },
-  passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL}/login`, session: false }),
+  passport.authenticate('google', { 
+    failureRedirect: `${process.env.FRONTEND_URL}/login`,
+    session: false 
+  }),
   async (req, res) => {
-    const token = jwt.sign({ user: { id: req.user.id } }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.redirect(`${process.env.FRONTEND_URL}/oauth-callback?token=${token}`);
+    try {
+      const token = jwt.sign(
+        { user: { id: req.user.id } },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      res.redirect(`${process.env.FRONTEND_URL}/oauth-callback?token=${token}`);
+    } catch (error) {
+      console.error('OAuth callback error:', error);
+      res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
+    }
   }
 );
 
