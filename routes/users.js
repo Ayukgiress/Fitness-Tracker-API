@@ -288,34 +288,40 @@ router.post('/uploadProfileImage', auth, upload.single('file'), async (req, res,
   }
 });
 
-router.get('/auth/google',
-  passport.authenticate('google', {
-    scope: ['profile', 'email'],
-  })
-);
+passport.use(new GoogleStrategy({
+  clientID: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  callbackURL: `https://fitness-tracker-api-backends.onrender.com/auth/google/callback`
+}, async (accessToken, refreshToken, profile, done) => {
+  try {
+    let user = await User.findOne({ googleId: profile.id });
+    if (!user) {
+      user = new User({
+        googleId: profile.id,
+        username: profile.displayName,
+        email: profile.emails[0].value,
+        profileImage: profile.photos[0]?.value || 'default-image-url.jpg',
+      });
+      await user.save();
+    }
+    return done(null, user);
+  } catch (error) {
+    console.error('Error during Google authentication:', error);
+    return done(error, null);
+  }
+}));
+
+router.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 router.get('/auth/google/callback', 
   (req, res, next) => {
     console.log('Callback hit:', req.query); 
     next(); 
   },
-  passport.authenticate('google', { 
-    failureRedirect: `${process.env.FRONTEND_URL}/login`,
-    session: false 
-  }),
+  passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL}/login`, session: false }),
   async (req, res) => {
-    try {
-      const token = jwt.sign(
-        { user: { id: req.user.id } },
-        process.env.JWT_SECRET,
-        { expiresIn: '7d' }
-      );
-
-      res.redirect(`${process.env.FRONTEND_URL}/oauth-callback?token=${token}`);
-    } catch (error) {
-      console.error('OAuth callback error:', error);
-      res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
-    }
+    const token = jwt.sign({ user: { id: req.user.id } }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    res.redirect(`${process.env.FRONTEND_URL}/oauth-callback?token=${token}`);
   }
 );
 
