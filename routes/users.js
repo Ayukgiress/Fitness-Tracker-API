@@ -294,7 +294,7 @@ router.get('/auth/google',
   })
 );
 
-router.get('/users/auth/google/callback',
+router.get('/auth/google/callback',
   passport.authenticate('google', { 
     failureRedirect: `${process.env.FRONTEND_URL}/login`,
     session: false 
