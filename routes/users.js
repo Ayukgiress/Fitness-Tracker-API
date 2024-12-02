@@ -205,7 +205,7 @@ router.post('/refresh-token', async (req, res) => {
       }
 
       const payload = { user: { id: decoded.user.id } };
-      const newAccessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+      const newAccessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7h' });
 
       res.json({ accessToken: newAccessToken });
     });
@@ -294,7 +294,11 @@ router.get('/auth/google',
   })
 );
 
-router.get('/auth/google/callback',
+router.get('/auth/google/callback', 
+  (req, res, next) => {
+    console.log('Callback hit:', req.query); 
+    next(); 
+  },
   passport.authenticate('google', { 
     failureRedirect: `${process.env.FRONTEND_URL}/login`,
     session: false 
@@ -307,10 +311,10 @@ router.get('/auth/google/callback',
         { expiresIn: '7d' }
       );
 
-      res.redirect(`${process.env.FRONTEND_URL}/users/oauth-callback?token=${token}`);
+      res.redirect(`${process.env.FRONTEND_URL}/oauth-callback?token=${token}`);
     } catch (error) {
       console.error('OAuth callback error:', error);
-      res.redirect(`${process.env.FRONTEND_URL}/users/login?error=auth_failed`);
+      res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
     }
   }
 );
