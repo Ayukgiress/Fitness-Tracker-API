@@ -302,7 +302,11 @@ router.get(
   }),
   async (req, res) => {
     try {
+      console.log('Google OAuth Callback - User:', req.user);
+      console.log('Authentication headers:', req.headers);
+
       if (!req.user) {
+        console.error('No user found in the request');
         return res.status(401).json({
           status: "failed",
           message: "Google authentication failed",
@@ -311,6 +315,8 @@ router.get(
 
       const token = jwt.sign({ user: { id: req.user.id } }, process.env.JWT_SECRET, { expiresIn: '7d' });
       const frontendRedirectURL = `${process.env.FRONTEND_URL}/oauth-callback?token=${token}`;
+      
+      console.log('Redirect URL:', frontendRedirectURL);
       res.redirect(frontendRedirectURL);
     } catch (error) {
       console.error("Google OAuth Callback Error:", error);
