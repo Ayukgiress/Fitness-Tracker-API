@@ -310,9 +310,6 @@ router.get(
       }
 
       const token = jwt.sign({ user: { id: req.user.id } }, process.env.JWT_SECRET, { expiresIn: '7d' });
-
-      console.log("Generated Google OAuth Token:", token);
-
       const frontendRedirectURL = `${process.env.FRONTEND_URL}/oauth-callback?token=${token}`;
       res.redirect(frontendRedirectURL);
     } catch (error) {

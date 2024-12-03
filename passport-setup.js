@@ -12,7 +12,7 @@ if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: `${process.env.BACKEND_URL}/users/google/callback`, 
+  callbackURL: `${process.env.BACKEND_URL}/users/google/callback`,
   scope: ['openid', 'email', 'profile'],
 },
 async (accessToken, refreshToken, profile, done) => {
