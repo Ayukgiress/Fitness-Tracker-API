@@ -30,6 +30,7 @@ async (accessToken, refreshToken, profile, done) => {
     }
 
     done(null, user);
+    console.log('Google Profile:', profile);
   } catch (error) {
     done(error);
   }
