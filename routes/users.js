@@ -295,7 +295,7 @@ router.get('/auth/google',
 );
 
 router.get(
-  "/auth/google/callback",
+  "/google/callback",
   passport.authenticate("google", {
     session: false,
     failureRedirect: "/login",
