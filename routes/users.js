@@ -310,7 +310,7 @@ router.get(
       }
 
       const token = jwt.sign({ user: { id: req.user.id } }, process.env.JWT_SECRET, { expiresIn: '7d' });
-      const frontendRedirectURL = `${process.env.FRONTEND_URL}/oauth-callback?token=${token}`;
+      const frontendRedirectURL = `https://fittrack-web.vercel.app/oauth-callback?token=${token}`;
       res.redirect(frontendRedirectURL);
     } catch (error) {
       console.error("Google OAuth Callback Error:", error);
