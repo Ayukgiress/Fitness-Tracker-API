@@ -334,21 +334,21 @@ router.get(
   }
 );
 
-router.get('/validate-token', authenticateJWT, (req, res) => {
-  try {
-    console.log('User validated:', req.user);
-    res.json({
-      status: 'success',
-      user: {
-        id: req.user.id,
-        username: req.user.username,
-        email: req.user.email
-      }
-    });
-  } catch (error) {
-    console.error('Token validation error:', error);
-    res.status(401).json({ status: 'failed', message: 'Invalid token' });
-  }
-});
+// router.get('/validate-token', authenticateJWT, (req, res) => {
+//   try {
+//     console.log('User validated:', req.user);
+//     res.json({
+//       status: 'success',
+//       user: {
+//         id: req.user.id,
+//         username: req.user.username,
+//         email: req.user.email
+//       }
+//     });
+//   } catch (error) {
+//     console.error('Token validation error:', error);
+//     res.status(401).json({ status: 'failed', message: 'Invalid token' });
+//   }
+// });
 
 export default router;
