@@ -215,20 +215,17 @@ router.post('/refresh-token', async (req, res) => {
   }
 });
 
-router.get("/current-user", auth, async (req, res) => {
+router.get('/current-user', auth, (req, res) => {
   try {
-    const user = await User.findById(req.user.id)
-      .select('-password')
-      .lean();
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    return res.status(200).json(user);
+    console.log('Current User Request - Authenticated User:', req.user);
+    res.json({
+      id: req.user.id,
+      email: req.user.email,
+      username: req.user.username,
+    });
   } catch (error) {
-    console.error("Error fetching current user:", error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error('Current User Endpoint Error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -293,7 +290,6 @@ router.get('/auth/google',
     scope: ['profile', 'email'],
   })
 );
-
 router.get(
   "/google/callback",
   passport.authenticate("google", {
@@ -303,7 +299,6 @@ router.get(
   async (req, res) => {
     try {
       console.log('Google OAuth Callback - User:', req.user);
-      console.log('Authentication headers:', req.headers);
 
       if (!req.user) {
         console.error('No user found in the request');
@@ -313,9 +308,20 @@ router.get(
         });
       }
 
-      const token = jwt.sign({ user: { id: req.user.id } }, process.env.JWT_SECRET, { expiresIn: '7d' });
+      // Ensure you're creating the token with the correct payload
+      const token = jwt.sign(
+        {
+          user: {
+            id: req.user._id.toString(),
+            email: req.user.email
+          }
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
       const frontendRedirectURL = `${process.env.FRONTEND_URL}/oauth-callback?token=${token}`;
-      
+
       console.log('Redirect URL:', frontendRedirectURL);
       res.redirect(frontendRedirectURL);
     } catch (error) {
@@ -327,5 +333,22 @@ router.get(
     }
   }
 );
+
+router.get('/validate-token', authenticateJWT, (req, res) => {
+  try {
+    console.log('User validated:', req.user);
+    res.json({
+      status: 'success',
+      user: {
+        id: req.user.id,
+        username: req.user.username,
+        email: req.user.email
+      }
+    });
+  } catch (error) {
+    console.error('Token validation error:', error);
+    res.status(401).json({ status: 'failed', message: 'Invalid token' });
+  }
+});
 
 export default router;
