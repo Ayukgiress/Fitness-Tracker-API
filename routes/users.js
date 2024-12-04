@@ -215,17 +215,18 @@ router.post('/refresh-token', async (req, res) => {
   }
 });
 
-router.get('/current-user', auth, (req, res) => {
+router.get("/current-user", auth, async (req, res) => {
   try {
-    console.log('Current User Request - Authenticated User:', req.user);
-    res.json({
-      id: req.user.id,
-      email: req.user.email,
-      username: req.user.username,
-    });
+    const user = await User.findById(req.user.id)
+      .select('-password')
+      .lean();
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    return res.status(200).json(user);
   } catch (error) {
-    console.error('Current User Endpoint Error:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error("Error fetching current user:", error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
