@@ -309,7 +309,6 @@ router.get(
         });
       }
 
-      // Ensure you're creating the token with the correct payload
       const token = jwt.sign(
         {
           user: {
@@ -321,7 +320,7 @@ router.get(
         { expiresIn: '7d' }
       );
 
-      const frontendRedirectURL = `${process.env.FRONTEND_URL}/oauth-callback?token=${token}`;
+      const frontendRedirectURL = `https://fittrack-web.vercel.app/oauth-callback?token=${token}`;
 
       console.log('Redirect URL:', frontendRedirectURL);
       res.redirect(frontendRedirectURL);
