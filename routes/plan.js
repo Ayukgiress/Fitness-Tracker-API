@@ -37,7 +37,8 @@ router.post('/daily-steps', auth, [
 
 router.post('/weekly-distance', auth, [
   body('weekNumber').isInt({ gt: 0 }).withMessage('Week number must be a positive integer'),
-  body('distance').isFloat({ gt: 0 }).withMessage('Distance must be a positive number')
+  body('distance').isFloat({ gt: 0 }).withMessage('Distance must be a positive number'),
+  body('date').optional().isISO8601().withMessage('Date must be a valid ISO date')
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -45,14 +46,15 @@ router.post('/weekly-distance', auth, [
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { weekNumber, distance } = req.body;
-  const userId = req.user.id; // Get user ID from the authenticated user
+  const { weekNumber, distance, date } = req.body;
+  const userId = req.user.id; 
 
   try {
     const distanceEntry = new Distance({
       userId: new mongoose.Types.ObjectId(userId),
       weekNumber,
-      distance
+      distance,
+      date: date ? new Date(date) : undefined
     });
     await distanceEntry.save();
     res.status(201).json(distanceEntry);
@@ -62,7 +64,6 @@ router.post('/weekly-distance', auth, [
   }
 });
 
-// Get daily steps for the authenticated user
 router.get('/daily-steps', auth, async (req, res) => {
   const userId = req.user.id; 
 
@@ -75,7 +76,6 @@ router.get('/daily-steps', auth, async (req, res) => {
   }
 });
 
-// Get weekly distances for the authenticated user
 router.get('/weekly-distance', auth, async (req, res) => {
   const userId = req.user.id; 
 
