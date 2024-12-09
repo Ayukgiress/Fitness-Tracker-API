@@ -6,7 +6,7 @@ const Schema = mongoose.Schema;
 const stepSchema = new mongoose.Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
   steps: { type: Number, required: true },
-  date: Date,
+  date: new Date().toISOString()
 }, { timestamps: true });
 
 const Step = mongoose.model('Step', stepSchema);
