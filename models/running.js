@@ -1,4 +1,7 @@
 import mongoose from 'mongoose';
+
+const Schema = mongoose.Schema;
+
 const distanceSchema = new mongoose.Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
   weekNumber: { type: Number, required: true },
