@@ -36,7 +36,7 @@ app.use(session({
   
 
   app.use(cors({
-    origin: '*', 
+    origin: 'https://fittrack-web.vercel.app', 
     methods: ['GET', 'POST'],
     credentials: true
   }));
