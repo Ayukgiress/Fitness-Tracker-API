@@ -46,7 +46,6 @@ app.get('/', (req, res) => {
     res.send('Welcome to the Fitness Tracker API!');
 });
 
-// Route handlers
 import usersRouter from './routes/users.js';  
 import workoutRouter from './routes/workouts.js'; 
 import planRouter from './routes/plan.js';
@@ -55,10 +54,8 @@ app.use('/users', usersRouter);
 app.use('/workouts', workoutRouter);
 app.use('/plan', planRouter);
 
-// Connect to the database
 connectDB();
 
-// Error handling middleware
 app.use((req, res, next) => {
     console.log(`${req.method} ${req.url}`, req.body);
     next();
