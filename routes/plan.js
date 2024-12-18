@@ -7,9 +7,9 @@ import auth from '../middleWare/auth.js';
 
 const router = express.Router();
 
+// POST: Add daily steps (without date)
 router.post('/daily-steps', auth, [
   body('steps').isInt({ gt: 0 }).withMessage('Steps must be a positive integer'),
-  body('date').isISO8601().withMessage('Date is required and must be valid'),
   body('userId').optional().isMongoId().withMessage('Invalid user ID')
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -18,26 +18,21 @@ router.post('/daily-steps', auth, [
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { steps, date } = req.body;
-  const userId = req.user.id;
+  const { steps } = req.body;
+  const userId = req.user.id; 
 
   try {
     const existingEntry = await Step.findOne({
       userId,
-      date: {
-        $gte: new Date(date).setHours(0, 0, 0, 0),
-        $lt: new Date(date).setHours(23, 59, 59, 999)
-      }
     });
 
     if (existingEntry) {
-      return res.status(400).json({ message: "Steps already logged for this date" });
+      return res.status(400).json({ message: "Steps already logged for today" });
     }
 
     const stepEntry = new Step({
       userId: new mongoose.Types.ObjectId(userId),
       steps,
-      date: new Date(date)
     });
 
     await stepEntry.save();
@@ -48,10 +43,11 @@ router.post('/daily-steps', auth, [
   }
 });
 
+
+// POST: Add weekly distance (without date)
 router.post('/weekly-distance', auth, [
   body('weekNumber').isInt({ gt: 0 }).withMessage('Week number must be a positive integer'),
   body('distance').isFloat({ gt: 0 }).withMessage('Distance must be a positive number'),
-  body('date').optional().isISO8601().withMessage('Date must be a valid ISO date'),
   body('userId').optional().isMongoId().withMessage('Invalid user ID')
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -60,7 +56,7 @@ router.post('/weekly-distance', auth, [
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { weekNumber, distance, date } = req.body;
+  const { weekNumber, distance } = req.body;
   const userId = req.user.id;
 
   try {
@@ -77,7 +73,6 @@ router.post('/weekly-distance', auth, [
       userId: new mongoose.Types.ObjectId(userId),
       weekNumber,
       distance,
-      date: date ? new Date(date) : undefined
     });
 
     await distanceEntry.save();
@@ -87,12 +82,14 @@ router.post('/weekly-distance', auth, [
     res.status(500).json({ message: "Error saving distance entry: " + error.message });
   }
 });
+
+// GET: Fetch daily steps (without date)
 router.get('/daily-steps', auth, async (req, res) => {
   const userId = req.user.id;
 
   try {
     const steps = await Step.find({ userId })
-      .sort({ date: -1 })
+      .sort({ createdAt: -1 }) // Sorting by creation date or any other field you prefer
       .limit(30);
 
     res.json(steps);
@@ -102,12 +99,14 @@ router.get('/daily-steps', auth, async (req, res) => {
   }
 });
 
+
+// GET: Fetch weekly distance (without date)
 router.get('/weekly-distance', auth, async (req, res) => {
   const userId = req.user.id;
 
   try {
     const distances = await Distance.find({ userId })
-      .sort({ date: -1 })
+      .sort({ createdAt: -1 }) // Sorting by creation date or any other field you prefer
       .limit(12);
 
     res.json(distances);
@@ -116,5 +115,6 @@ router.get('/weekly-distance', auth, async (req, res) => {
     res.status(500).json({ message: "Error retrieving distance entries: " + error.message });
   }
 });
+
 
 export default router;
