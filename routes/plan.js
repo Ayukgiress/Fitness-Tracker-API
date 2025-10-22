@@ -11,12 +11,8 @@ const router = express.Router();
 // POST: Add daily steps
 router.post('/daily-steps', auth, [
   body('steps').isInt({ gt: 0 }).withMessage('Steps must be a positive integer'),
-<<<<<<< Updated upstream
-  body('date').isISO8601().withMessage('Date is required and must be valid')
-=======
   body('date').isISO8601().withMessage('Date must be a valid ISO date'),
   body('userId').optional().isMongoId().withMessage('Invalid user ID')
->>>>>>> Stashed changes
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -28,8 +24,6 @@ router.post('/daily-steps', auth, [
   const userId = req.user.id; 
 
   try {
-<<<<<<< Updated upstream
-=======
     const existingEntry = await Step.findOne({
       userId,
       date: new Date(date)
@@ -39,7 +33,6 @@ router.post('/daily-steps', auth, [
       return res.status(400).json({ message: "Steps already logged for this date" });
     }
 
->>>>>>> Stashed changes
     const stepEntry = new Step({
       userId: new mongoose.Types.ObjectId(userId),
       steps,
@@ -54,17 +47,11 @@ router.post('/daily-steps', auth, [
 });
 
 
-<<<<<<< Updated upstream
-router.post('/weekly-distance', auth, [
-  body('weekNumber').isInt({ gt: 0 }).withMessage('Week number must be a positive integer'),
-  body('distance').isFloat({ gt: 0 }).withMessage('Distance must be a positive number')
-=======
 // POST: Add daily distance
 router.post('/daily-distance', auth, [
   body('distance').isFloat({ gt: 0 }).withMessage('Distance must be a positive number'),
   body('date').isISO8601().withMessage('Date must be a valid ISO date'),
   body('userId').optional().isMongoId().withMessage('Invalid user ID')
->>>>>>> Stashed changes
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -72,16 +59,6 @@ router.post('/daily-distance', auth, [
     return res.status(400).json({ errors: errors.array() });
   }
 
-<<<<<<< Updated upstream
-  const { weekNumber, distance } = req.body;
-  const userId = req.user.id; // Get user ID from the authenticated user
-
-  try {
-    const distanceEntry = new Distance({
-      userId: new mongoose.Types.ObjectId(userId),
-      weekNumber,
-      distance
-=======
   const { distance, date } = req.body;
   const userId = req.user.id;
 
@@ -99,7 +76,6 @@ router.post('/daily-distance', auth, [
       userId: new mongoose.Types.ObjectId(userId),
       distance,
       date: new Date(date)
->>>>>>> Stashed changes
     });
     await distanceEntry.save();
     res.status(201).json(distanceEntry);
@@ -109,23 +85,15 @@ router.post('/daily-distance', auth, [
   }
 });
 
-<<<<<<< Updated upstream
-// Get daily steps for the authenticated user
-=======
 // GET: Fetch daily steps (without date)
->>>>>>> Stashed changes
 router.get('/daily-steps', auth, async (req, res) => {
   const userId = req.user.id; 
 
   try {
-<<<<<<< Updated upstream
-    const steps = await Step.find({ userId });
-=======
     const steps = await Step.find({ userId })
       .sort({ createdAt: -1 }) // Sorting by creation date or any other field you prefer
       .limit(30);
 
->>>>>>> Stashed changes
     res.json(steps);
   } catch (error) {
     console.error(error);
@@ -133,14 +101,6 @@ router.get('/daily-steps', auth, async (req, res) => {
   }
 });
 
-<<<<<<< Updated upstream
-// Get weekly distances for the authenticated user
-router.get('/weekly-distance', auth, async (req, res) => {
-  const userId = req.user.id; 
-
-  try {
-    const distances = await Distance.find({ userId });
-=======
 
 // GET: Fetch daily distance
 router.get('/daily-distance', auth, async (req, res) => {
@@ -151,7 +111,6 @@ router.get('/daily-distance', auth, async (req, res) => {
       .sort({ date: -1 }) // Sorting by date
       .limit(30);
 
->>>>>>> Stashed changes
     res.json(distances);
   } catch (error) {
     console.error(error);

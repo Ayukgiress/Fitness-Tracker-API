@@ -11,7 +11,25 @@ import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import passport from 'passport';
 
-// Multer configuration remains the same
+dotenv.config();
+
+const router = express.Router();
+
+// Nodemailer configuration
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  }
+});
+
+// Generate a 6-digit verification code
+const generateVerificationCode = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// Multer configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/');
@@ -36,30 +54,10 @@ const upload = multer({
   fileFilter
 });
 
-<<<<<<< Updated upstream
-dotenv.config();
-const router = express.Router();
-=======
-router.post('/register', registerValidator, async (req, res) => {
-  const { username, email, password, weight } = req.body;
->>>>>>> Stashed changes
-
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  }
-});
-
-// Generate a 6-digit verification code
-const generateVerificationCode = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-};
-
-// Registration route with verification code
+// ==================== REGISTRATION ROUTE ====================
 router.post('/register', registerValidator, async (req, res, next) => {
-  const { username, email, password } = req.body;
+  const { username, email, password, weight } = req.body;
+  
   try {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -67,49 +65,60 @@ router.post('/register', registerValidator, async (req, res, next) => {
     }
 
     const verificationCode = generateVerificationCode();
-    const verificationCodeExpires = new Date(Date.now() + 30 * 60000);
+    const verificationCodeExpires = new Date(Date.now() + 30 * 60000); // 30 minutes
 
     const user = new User({
       username,
       email,
       password,
-<<<<<<< Updated upstream
-      verificationCode,
-      verificationCodeExpires
-=======
       weight,
-      verificationToken,
-      verificationTokenExpires,
->>>>>>> Stashed changes
+      verificationCode,
+      verificationCodeExpires,
+      isVerified: false
     });
 
     await user.save();
 
     await transporter.sendMail({
       to: email,
-      subject: 'Verify Your Email',
+      subject: 'Verify Your Email - FitTrack',
       html: `
-        <h2>Welcome to Our Platform!</h2>
-        <p>Your verification code is: <strong>${verificationCode}</strong></p>
-        <p>This code will expire in 30 minutes.</p>
-        <p>Please enter this code in the verification page to complete your registration.</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #ef4444;">Welcome to FitTrack!</h2>
+          <p>Thank you for registering. Your verification code is:</p>
+          <div style="background-color: #f3f4f6; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
+            <h1 style="color: #ef4444; margin: 0; font-size: 32px; letter-spacing: 5px;">${verificationCode}</h1>
+          </div>
+          <p>This code will expire in <strong>30 minutes</strong>.</p>
+          <p>Please enter this code in the verification page to complete your registration.</p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+          <p style="color: #6b7280; font-size: 12px;">If you didn't request this, please ignore this email.</p>
+        </div>
       `
     });
 
     res.status(201).json({
+      success: true,
       msg: 'Registration successful! Please check your email for the verification code.',
       userId: user._id
     });
   } catch (err) {
-    console.error(err);
+    console.error('Registration error:', err);
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
 
-// Verify email with code
+// ==================== VERIFY EMAIL ROUTE ====================
 router.post('/verify-email', async (req, res) => {
   try {
     const { userId, code } = req.body;
+
+    if (!userId || !code) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID and verification code are required.'
+      });
+    }
 
     const user = await User.findById(userId);
 
@@ -120,7 +129,6 @@ router.post('/verify-email', async (req, res) => {
       });
     }
 
-    // Check if already verified
     if (user.isVerified) {
       return res.status(400).json({
         success: false,
@@ -128,7 +136,6 @@ router.post('/verify-email', async (req, res) => {
       });
     }
 
-   
     if (user.verificationCodeExpires < new Date()) {
       return res.status(400).json({
         success: false,
@@ -136,7 +143,6 @@ router.post('/verify-email', async (req, res) => {
       });
     }
 
-   
     if (user.verificationCode !== code) {
       return res.status(400).json({
         success: false,
@@ -144,20 +150,23 @@ router.post('/verify-email', async (req, res) => {
       });
     }
 
-    // Update user verification status
     user.isVerified = true;
     user.verificationCode = null;
     user.verificationCodeExpires = null;
     await user.save();
 
- 
     const payload = { user: { id: user.id } };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
 
     return res.status(200).json({
       success: true,
       message: 'Email verified successfully!',
-      token
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email
+      }
     });
 
   } catch (error) {
@@ -169,10 +178,14 @@ router.post('/verify-email', async (req, res) => {
   }
 });
 
-// Resend verification code
+// ==================== RESEND VERIFICATION CODE ====================
 router.post('/resend-verification-code', async (req, res) => {
   try {
     const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ message: 'User ID is required' });
+    }
 
     const user = await User.findById(userId);
     if (!user) {
@@ -192,22 +205,30 @@ router.post('/resend-verification-code', async (req, res) => {
 
     await transporter.sendMail({
       to: user.email,
-      subject: 'New Verification Code',
+      subject: 'New Verification Code - FitTrack',
       html: `
-        <h2>New Verification Code</h2>
-        <p>Your new verification code is: <strong>${verificationCode}</strong></p>
-        <p>This code will expire in 30 minutes.</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #ef4444;">New Verification Code</h2>
+          <p>You requested a new verification code:</p>
+          <div style="background-color: #f3f4f6; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
+            <h1 style="color: #ef4444; margin: 0; font-size: 32px; letter-spacing: 5px;">${verificationCode}</h1>
+          </div>
+          <p>This code will expire in <strong>30 minutes</strong>.</p>
+        </div>
       `
     });
 
-    res.json({ message: 'New verification code sent successfully' });
+    res.json({ 
+      success: true,
+      message: 'New verification code sent successfully' 
+    });
   } catch (error) {
     console.error('Error resending verification code:', error);
     res.status(500).json({ message: 'Error resending verification code' });
   }
 });
 
-// Login route
+// ==================== LOGIN ROUTE ====================
 router.post('/login', loginValidator, async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -217,21 +238,24 @@ router.post('/login', loginValidator, async (req, res, next) => {
       return res.status(400).json({ msg: 'Invalid email or password' });
     }
 
+    // Check if email is verified
+    if (!user.isVerified) {
+      return res.status(403).json({ 
+        msg: 'Please verify your email before logging in',
+        userId: user._id,
+        requiresVerification: true
+      });
+    }
+
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       return res.status(400).json({ msg: 'Invalid email or password' });
     }
 
     const payload = { user: { id: user.id } };
+    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, { expiresIn: '7d' });
 
-<<<<<<< Updated upstream
-    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {
-      if (err) {
-        return next(err);
-      }
-      res.json({ token });
-    });
-=======
     user.refreshToken = refreshToken;
     await user.save();
 
@@ -239,20 +263,31 @@ router.post('/login', loginValidator, async (req, res, next) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: 60 * 60 * 1000 // 1 hour
     });
-    res.json({ accessToken, refreshToken });
->>>>>>> Stashed changes
+
+    res.json({ 
+      success: true,
+      accessToken, 
+      refreshToken,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        profileImage: user.profileImage
+      }
+    });
   } catch (err) {
+    console.error('Login error:', err);
     next(err);
   }
 });
 
-
+// ==================== GET CURRENT USER ====================
 router.get("/current-user", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id)
-      .select('-password')
+      .select('-password -refreshToken')
       .lean(); 
 
     if (!user) {
@@ -266,11 +301,10 @@ router.get("/current-user", auth, async (req, res) => {
   }
 });
 
-
-// Fetch user profile
+// ==================== GET USER PROFILE ====================
 router.get("/profile", auth, async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).select("-password");
+    const user = await User.findById(req.user.id).select("-password -refreshToken");
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -280,16 +314,24 @@ router.get("/profile", auth, async (req, res, next) => {
   }
 });
 
-// Update user profile
+// ==================== UPDATE USER PROFILE ====================
 router.put('/profile', auth, async (req, res, next) => {
   const { username, email, profileImage } = req.body;
 
   try {
+    // Check if email is being changed and already exists
+    if (email && email !== req.user.email) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ error: 'Email already in use' });
+      }
+    }
+
     const updatedUser = await User.findByIdAndUpdate(
       req.user.id,
       { username, email, profileImage },
       { new: true, runValidators: true }
-    ).select('-password');
+    ).select('-password -refreshToken');
 
     res.json(updatedUser);
   } catch (error) {
@@ -297,15 +339,20 @@ router.put('/profile', auth, async (req, res, next) => {
   }
 });
 
+// ==================== UPDATE WEIGHT ====================
 router.put('/update-weight', auth, async (req, res, next) => {
   const { weight } = req.body;
+
+  if (!weight || weight <= 0) {
+    return res.status(400).json({ error: 'Valid weight is required' });
+  }
 
   try {
     const updatedUser = await User.findByIdAndUpdate(
       req.user.id,
       { weight },
       { new: true, runValidators: true }
-    ).select('-password');
+    ).select('-password -refreshToken');
 
     res.json(updatedUser);
   } catch (error) {
@@ -313,6 +360,7 @@ router.put('/update-weight', auth, async (req, res, next) => {
   }
 });
 
+// ==================== UPLOAD PROFILE IMAGE ====================
 router.post('/uploadProfileImage', auth, upload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) {
@@ -324,16 +372,21 @@ router.post('/uploadProfileImage', auth, upload.single('file'), async (req, res,
 
     console.log('Image uploaded to:', result.secure_url);
 
-    req.user.profileImage = result.secure_url;
-    await req.user.save();
+    const user = await User.findById(req.user.id);
+    user.profileImage = result.secure_url;
+    await user.save();
 
-    res.json({ url: req.user.profileImage });
+    res.json({ 
+      success: true,
+      url: user.profileImage 
+    });
   } catch (error) {
     console.error('Error uploading profile image:', error);
     next(error);
   }
 });
 
+// ==================== GOOGLE AUTH ====================
 router.get('/auth/google',
   passport.authenticate('google', {
     scope: ['profile', 'email']
@@ -344,38 +397,10 @@ router.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/login/failed' }),
   async (req, res) => {
     try {
-      // Create JWT token after successful Google authentication
       const payload = { user: { id: req.user.id } };
-      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3days' });
+      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-<<<<<<< Updated upstream
-      // Redirect to frontend with token
       res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
-=======
-      if (!req.user) {
-        console.error('No user found in the request');
-        return res.status(401).json({
-          status: "failed",
-          message: "Google authentication failed",
-        });
-      }
-
-      const token = jwt.sign(
-        {
-          user: {
-            id: req.user._id.toString(),
-            email: req.user.email
-          }
-        },
-        process.env.JWT_SECRET,
-        { expiresIn: '7d' }
-      );
-
-      const frontendRedirectURL = `http://localhost:5173/oauth-callback?token=${token}`;
-
-      console.log('Redirect URL:', frontendRedirectURL);
-      res.redirect(frontendRedirectURL);
->>>>>>> Stashed changes
     } catch (error) {
       console.error('Auth callback error:', error);
       res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
@@ -383,61 +408,52 @@ router.get('/auth/google/callback',
   }
 );
 
-
-
 router.get('/login/failed', (req, res) => {
   res.status(401).json({
     error: true,
-    message: 'Login failure',
+    message: 'Google authentication failed',
   });
 });
-
 
 router.get('/login/success', (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({
+      error: true,
+      message: 'Not authenticated'
+    });
+  }
+
   res.status(200).json({
     error: false,
-    message: 'Login success',
-    user: req.user, // Send user info
+    message: 'Login successful',
+    user: req.user,
   });
 });
 
-
+// ==================== ERROR HANDLER ====================
 const errorHandler = (err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ message: 'An error occurred!', error: err.message });
+  
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({ 
+      message: 'Validation error', 
+      errors: Object.values(err.errors).map(e => e.message) 
+    });
+  }
+  
+  if (err.name === 'JsonWebTokenError') {
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+  
+  if (err.name === 'TokenExpiredError') {
+    return res.status(401).json({ message: 'Token expired' });
+  }
+  
+  res.status(500).json({ 
+    message: 'An error occurred!', 
+    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message 
+  });
 };
-
-
-// const verifyEmail = async (req, res) => {
-//   try {
-//     const emailToken = res.body.emailToken
-//     if (!emailToken) return res.status(404).json('EmailToken not found...')
-//       const user = await User.findOne({ emailToken })
-
-//     if (user) {
-//       user.emailToken = null,
-//       user.isVerified = true,
-//       await user.save()
-
-//       const token = createToken(user._id)
-
-//       res.status(200).json({
-//         _id: user._id,
-//         username: user.username,
-//         email: user.email,
-//         token,
-//         isVerified: user?.isVerified
-//       })
-
-//     } else res.status(404).json("Email verification failed, invalid token!")
-
-//     } catch (error) {
-//       console.log(error)
-//       res.status(500).json(error.message)
-//     }
-// }
-
-
 
 router.use(errorHandler);
 
