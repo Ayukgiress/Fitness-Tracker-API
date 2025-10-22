@@ -9,5 +9,19 @@ const stepSchema = new mongoose.Schema({
   date: Date,
 }, { timestamps: true });
 
+<<<<<<< Updated upstream
 const Step = mongoose.model('Step', stepSchema);
+=======
+const goalSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  type: { type: String, required: true, enum: ['weeklyDistance', 'dailySteps'] },
+  value: { type: Number, required: true },
+  date: { type: Date, default: Date.now }
+});
+
+const Step = mongoose.model('Step', stepSchema);
+const Goal = mongoose.model('Goal', goalSchema);
+
+export { Step, Goal };
+>>>>>>> Stashed changes
 export default Step;

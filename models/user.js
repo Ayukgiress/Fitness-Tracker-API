@@ -18,8 +18,11 @@ const UserSchema = new Schema({
     type: String, 
     required: false 
   },
-  googleId: { 
-    type: String 
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true,
+    default: undefined
   },
   isVerified: { 
     type: Boolean, 
@@ -41,14 +44,11 @@ const UserSchema = new Schema({
     type: String, 
     default: '' 
   },
-  lastLogin: { 
-    type: Date 
-  },
-  verificationAttempts: {
+  weight: {
     type: Number,
-    default: 0
+    required: function () { return !this.googleId; }
   },
-  lastVerificationAttempt: {
+  lastLogin: {
     type: Date
   }
 }, { 

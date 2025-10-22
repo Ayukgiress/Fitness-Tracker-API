@@ -36,8 +36,13 @@ const upload = multer({
   fileFilter
 });
 
+<<<<<<< Updated upstream
 dotenv.config();
 const router = express.Router();
+=======
+router.post('/register', registerValidator, async (req, res) => {
+  const { username, email, password, weight } = req.body;
+>>>>>>> Stashed changes
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -68,8 +73,14 @@ router.post('/register', registerValidator, async (req, res, next) => {
       username,
       email,
       password,
+<<<<<<< Updated upstream
       verificationCode,
       verificationCodeExpires
+=======
+      weight,
+      verificationToken,
+      verificationTokenExpires,
+>>>>>>> Stashed changes
     });
 
     await user.save();
@@ -213,12 +224,25 @@ router.post('/login', loginValidator, async (req, res, next) => {
 
     const payload = { user: { id: user.id } };
 
+<<<<<<< Updated upstream
     jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {
       if (err) {
         return next(err);
       }
       res.json({ token });
     });
+=======
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+    res.json({ accessToken, refreshToken });
+>>>>>>> Stashed changes
   } catch (err) {
     next(err);
   }
@@ -273,6 +297,22 @@ router.put('/profile', auth, async (req, res, next) => {
   }
 });
 
+router.put('/update-weight', auth, async (req, res, next) => {
+  const { weight } = req.body;
+
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      { weight },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    res.json(updatedUser);
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post('/uploadProfileImage', auth, upload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) {
@@ -308,8 +348,34 @@ router.get('/auth/google/callback',
       const payload = { user: { id: req.user.id } };
       const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3days' });
 
+<<<<<<< Updated upstream
       // Redirect to frontend with token
       res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
+=======
+      if (!req.user) {
+        console.error('No user found in the request');
+        return res.status(401).json({
+          status: "failed",
+          message: "Google authentication failed",
+        });
+      }
+
+      const token = jwt.sign(
+        {
+          user: {
+            id: req.user._id.toString(),
+            email: req.user.email
+          }
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      const frontendRedirectURL = `http://localhost:5173/oauth-callback?token=${token}`;
+
+      console.log('Redirect URL:', frontendRedirectURL);
+      res.redirect(frontendRedirectURL);
+>>>>>>> Stashed changes
     } catch (error) {
       console.error('Auth callback error:', error);
       res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);

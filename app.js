@@ -44,14 +44,23 @@ app.get('/', (req, res) => {
     res.send('Welcome to the Fitness Tracker API!');
 });
 
+<<<<<<< Updated upstream
 // Route handlers
 import usersRouter from './routes/users.js';  
 import workoutRouter from './routes/workouts.js'; 
+=======
+import usersRouter from './routes/users.js';
+import workoutRouter from './routes/workouts.js';
+>>>>>>> Stashed changes
 import planRouter from './routes/plan.js';
+import mealsRouter from './routes/meals.js';
+import goalsRouter from './routes/goals.js';
 
-app.use('/users', usersRouter); 
+app.use('/users', usersRouter);
 app.use('/workouts', workoutRouter);
 app.use('/plan', planRouter);
+app.use('/api/meals', mealsRouter);
+app.use('/goals', goalsRouter);
 
 // Connect to the database
 connectDB();
