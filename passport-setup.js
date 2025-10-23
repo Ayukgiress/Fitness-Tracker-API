@@ -5,7 +5,7 @@ import User from './models/user.js'; // Adjust the path as needed
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "https://fitness-tracker-api-1.onrender.com/users/auth/google/callback",
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || "https://fitness-tracker-api-1.onrender.com/users/auth/google/callback",
   },
   async (accessToken, refreshToken, profile, done) => {
     try {

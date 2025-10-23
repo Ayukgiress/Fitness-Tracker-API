@@ -231,6 +231,54 @@ router.post('/verify-email-code', async (req, res) => {
   }
 });
 
+// ==================== REFRESH TOKEN ====================
+router.post('/refresh-token', async (req, res) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken || typeof refreshToken !== 'string' || refreshToken.trim() === '') {
+    return res.status(400).json({ error: 'Refresh token is required' });
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET);
+    const user = await User.findById(decoded.user.id);
+
+    if (!user || user.refreshToken !== refreshToken) {
+      return res.status(401).json({ error: 'Invalid refresh token' });
+    }
+
+    const payload = { user: { id: user.id } };
+    const newAccessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+    res.cookie('accessToken', newAccessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    const newRefreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, { expiresIn: '30d' });
+    user.refreshToken = newRefreshToken;
+    await user.save();
+
+    res.cookie('refreshToken', newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000
+    });
+
+    res.json({
+      success: true,
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken
+    });
+  } catch (error) {
+    console.error('Refresh token error:', error.message);
+    res.status(401).json({ error: 'Invalid or expired refresh token' });
+  }
+});
+
 // ==================== RESEND VERIFICATION CODE ====================
 router.post('/resend-verification-code', async (req, res) => {
   try {
@@ -306,8 +354,8 @@ router.post('/login', loginValidator, async (req, res, next) => {
     }
 
     const payload = { user: { id: user.id } };
-    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
-    const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, { expiresIn: '7d' });
+    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, { expiresIn: '30d' });
 
     user.refreshToken = refreshToken;
     await user.save();
@@ -316,7 +364,14 @@ router.post('/login', loginValidator, async (req, res, next) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 60 * 60 * 1000 // 1 hour
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
     res.json({ 
@@ -439,32 +494,47 @@ router.post('/uploadProfileImage', auth, upload.single('file'), async (req, res,
   }
 });
 
-// ==================== GOOGLE AUTH ====================
-router.get('/auth/google',
+router.get('/auth/google', (req, res, next) => {
   passport.authenticate('google', {
-    scope: ['profile', 'email']
-  })
-);
+    scope: ['profile', 'email'],
+    state: req.query.callbackUrl || req.query.state
+  })(req, res, next);
+});
+
+router.use('/auth/google/callback', (req, res, next) => {
+  if (req.method === 'HEAD') {
+    return res.status(405).send('Method Not Allowed');
+  }
+  next();
+});
 
 router.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/login/failed' }),
   async (req, res) => {
     try {
       const payload = { user: { id: req.user.id } };
-      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+      const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+      const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, { expiresIn: '30d' });
 
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-      
-      // Check if user needs to provide weight (new Google OAuth users won't have weight)
+      const user = await User.findById(req.user.id);
+      user.refreshToken = refreshToken;
+      await user.save();
+
+      const frontendUrl = process.env.FRONTEND_URL || 'https://noslack.vercel.app';
+
+      // Check for state parameter (callbackUrl) from Google OAuth
+      const callbackUrl = req.query.state || `${frontendUrl}/auth/callback`;
+
       if (!req.user.weight) {
-        res.redirect(`${frontendUrl}/auth/callback?token=${token}&missingWeight=true`);
+        res.redirect(`${callbackUrl}?accessToken=${accessToken}&refreshToken=${refreshToken}&missingWeight=true`);
       } else {
-        res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
+        res.redirect(`${callbackUrl}?accessToken=${accessToken}&refreshToken=${refreshToken}`);
       }
     } catch (error) {
       console.error('Auth callback error:', error);
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-      res.redirect(`${frontendUrl}/login?error=auth_failed`);
+      const frontendUrl = process.env.FRONTEND_URL || 'https://noslack.vercel.app';
+      const callbackUrl = req.query.state || `${frontendUrl}/auth/callback`;
+      res.redirect(`${callbackUrl.replace('/auth/callback', '/login')}?error=auth_failed`);
     }
   }
 );

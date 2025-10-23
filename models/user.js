@@ -50,6 +50,10 @@ const UserSchema = new Schema({
   },
   lastLogin: {
     type: Date
+  },
+  refreshToken: {
+    type: String,
+    default: null
   }
 }, { 
   timestamps: true 
