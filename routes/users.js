@@ -178,6 +178,59 @@ router.post('/verify-email', async (req, res) => {
   }
 });
 
+// ==================== VERIFY EMAIL CODE ====================
+router.post('/verify-email-code', async (req, res) => {
+  try {
+    const { code } = req.body;
+
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification code is required.'
+      });
+    }
+
+    const user = await User.findOne({
+      verificationCode: code,
+      verificationCodeExpires: { $gt: new Date() },
+      isVerified: false
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invalid or expired verification code.'
+      });
+    }
+
+    user.isVerified = true;
+    user.verificationCode = null;
+    user.verificationCodeExpires = null;
+    await user.save();
+
+    const payload = { user: { id: user.id } };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Email verified successfully!',
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email
+      }
+    });
+
+  } catch (error) {
+    console.error('Verification error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'An error occurred during verification.'
+    });
+  }
+});
+
 // ==================== RESEND VERIFICATION CODE ====================
 router.post('/resend-verification-code', async (req, res) => {
   try {
@@ -218,9 +271,9 @@ router.post('/resend-verification-code', async (req, res) => {
       `
     });
 
-    res.json({ 
+    res.json({
       success: true,
-      message: 'New verification code sent successfully' 
+      message: 'New verification code sent successfully'
     });
   } catch (error) {
     console.error('Error resending verification code:', error);
@@ -400,10 +453,18 @@ router.get('/auth/google/callback',
       const payload = { user: { id: req.user.id } };
       const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-      res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      
+      // Check if user needs to provide weight (new Google OAuth users won't have weight)
+      if (!req.user.weight) {
+        res.redirect(`${frontendUrl}/auth/callback?token=${token}&missingWeight=true`);
+      } else {
+        res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
+      }
     } catch (error) {
       console.error('Auth callback error:', error);
-      res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      res.redirect(`${frontendUrl}/login?error=auth_failed`);
     }
   }
 );
