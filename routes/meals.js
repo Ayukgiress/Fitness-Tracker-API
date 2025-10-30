@@ -4,22 +4,18 @@ import auth from '../middleWare/auth.js';
 
 const router = express.Router();
 
-// POST /api/meals - Save a new meal
 router.post('/', auth, async (req, res) => {
   const { userId, name, type, date, items, totalCalories } = req.body;
 
-  // Validate required fields
   if (!userId || !name || !type || !date || !items || totalCalories === undefined) {
     return res.status(400).json({ success: false, message: 'Missing required fields' });
   }
 
-  // Validate meal type
   const validTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
   if (!validTypes.includes(type)) {
     return res.status(400).json({ success: false, message: 'Invalid meal type' });
   }
 
-  // Validate items array
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ success: false, message: 'Items must be a non-empty array' });
   }
@@ -62,7 +58,6 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// GET /api/meals/:userId - Get all meals for a user
 router.get('/:userId', auth, async (req, res) => {
   const { userId } = req.params;
 
@@ -75,7 +70,6 @@ router.get('/:userId', auth, async (req, res) => {
   }
 });
 
-// GET /api/meals/:userId/:date - Get meals for a specific date
 router.get('/:userId/:date', auth, async (req, res) => {
   const { userId, date } = req.params;
 
@@ -89,3 +83,4 @@ router.get('/:userId/:date', auth, async (req, res) => {
 });
 
 export default router;
+  // Validate items array

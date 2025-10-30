@@ -6,7 +6,6 @@ const workoutSchema = Joi.object({
     calories: Joi.number().integer().positive().required()  
 });  
 
-// Validation middleware  
  const validateWorkout = (req, res, next) => {  
     const { error } = workoutSchema.validate(req.body);  
     if (error) {  
